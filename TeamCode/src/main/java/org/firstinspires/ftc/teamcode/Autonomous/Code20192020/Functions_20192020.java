@@ -1,8 +1,7 @@
-package org.firstinspires.ftc.teamcode.summerprojects.Code20192020;
+package org.firstinspires.ftc.teamcode.Autonomous.Code20192020;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
 
 @Disabled
 public class Functions_20192020 {

@@ -8,14 +8,11 @@
 
  */
 
-package org.firstinspires.ftc.teamcode.summerprojects;
-
-import android.graphics.Camera;
+package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 
 import static java.lang.Math.abs;
 import static java.lang.Math.sqrt;

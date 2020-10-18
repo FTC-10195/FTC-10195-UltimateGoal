@@ -1,9 +1,8 @@
-package org.firstinspires.ftc.teamcode.summerprojects.Code20192020;
+package org.firstinspires.ftc.teamcode.Autonomous.Code20192020;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
 
 @Autonomous(name="RunCode_20192020", group="Autonomous")
 //@Disabled
