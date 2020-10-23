@@ -21,6 +21,7 @@ public class MecanumAuto extends LinearOpMode {
         IMUSetup();
         motorSetup();
         gyroSetup();
+        RobotControlMethodsSetup();
     }
 
     public void IMUSetup() {
@@ -39,8 +40,6 @@ public class MecanumAuto extends LinearOpMode {
         bl = hardwareMap.dcMotor.get("bl");
         br = hardwareMap.dcMotor.get("br");
 
-        robot.resetRobotControlMethods(fl, fr, bl, br, imu);
-
         fr.setDirection(DcMotor.Direction.REVERSE);
         br.setDirection(DcMotor.Direction.REVERSE);
 
@@ -55,6 +54,10 @@ public class MecanumAuto extends LinearOpMode {
             sleep(50);
             idle();
         }
+    }
+
+    private void RobotControlMethodsSetup() {
+        robot.resetRobotControlMethods(fl, fr, bl, br, imu);
     }
 
     public void runOpMode() {

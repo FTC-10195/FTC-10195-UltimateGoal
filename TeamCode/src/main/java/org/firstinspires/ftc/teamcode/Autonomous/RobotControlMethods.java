@@ -17,11 +17,11 @@ import static java.lang.Math.*;
 public class RobotControlMethods
 {
     // Configuration parameters
-    final double TICKS_PER_WHEEL_ROTATION = 537.6; // TODO: Change when wheel is finalized
-    final double WHEEL_SIZE_IN_INCHES = 3.94; // TODO: Change when wheel is finalized
+    final double TICKS_PER_WHEEL_ROTATION = 537.6; //Amount of ticks logged in one wheel rotation
+    final double WHEEL_SIZE_IN_INCHES = 3.94; // Diameter of the wheel (in inches)
 
-    double decelerationPercentage = 85; // TODO: Tune
-    double motorPowerMultiplier = 0.7; // TODO: Tune
+    double decelerationThreshold = 70; // When to start decelerating; TODO: Tune
+    double motorPowerMultiplier = 1; // Controls the speed of the robot; TODO: Tune
 
     // State variables
     private DcMotor fl, fr, bl, br;
@@ -131,10 +131,10 @@ public class RobotControlMethods
 
         while ( fl.isBusy() && fr.isBusy() && bl.isBusy() && br.isBusy() )
         {
-            if (fl.getCurrentPosition() >= (decelerationPercentage * ticks)) {
+            if (fl.getCurrentPosition() >= (decelerationThreshold * ticks)) {
                 // Decelerates at a rate of 1/(1-deceleration_percentage) percent of power per percent of position
                 try {
-                    double decelerationRate = -1 / (1 - decelerationPercentage);
+                    double decelerationRate = -1 / (1 - decelerationThreshold);
                     motorPowerMultiplier *= Math.max(decelerationRate * ((fl.getCurrentPosition() / ticks) - 1), 0.2);
                 } catch (Exception e){
                     break;
@@ -315,7 +315,4 @@ public class RobotControlMethods
     public double toRadians(double angleInDegrees){
         return angleInDegrees * PI / 180;
     }
-
-    // This method is useless but required since this is a LinearOpMode
-    public void runOpMode(){}
 }

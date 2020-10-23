@@ -2,9 +2,10 @@
     Ideas to Implement:
 
     Automate some parts of teleop
-        Example from skystone: robot automatically places block with the input of the current height
+        Automate tower shooting (power and POSSIBLY location)
+        Automate power shooting (either turn the robot just enough or move the robot just enough)
+
     Use slowmode with other areas of the robot, like slides
-        Example from skystone: slide goes up slower to get the right height
 
  */
 
