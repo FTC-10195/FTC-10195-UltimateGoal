@@ -2,13 +2,12 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name = "BasicMecanumAutonomous", group = "a")
-public class MecanumAuto extends LinearOpMode {
+@Autonomous(name = "TESTING", group = "b")
+public class TestAutonomous extends LinearOpMode {
     ElapsedTime timeElapsed;
     String zone = "A";
 
@@ -71,33 +70,10 @@ public class MecanumAuto extends LinearOpMode {
     public void runRobot() {
         waitForStart();
 
-        //TODO: Actual Autonomous
-        /*
-        if (opModeIsActive() && !isStopRequested()) {
-            //Robot instructions go here
-            timeElapsed.startTime();
-            robot.move("forward", 36, 1);
-
-            //Detect # of rings
-
-            switch(zone) {
-                case "A":
-                    robot.move("forward", 28, 1);
-                    robot.move("right", 36, 1);
-                    robot.move("backward", 72, 1);
-            }
-
-            telemetry.addData("Time Elapsed", timeElapsed.time());
-            timeElapsed.reset();
-            sleep(5000);
-        }
-        */
-
         //TODO: Test Program
 
         if (opModeIsActive() && !isStopRequested()) {
             //Robot instructions go here
-            telemetry.addLine("Running Test Program");
             timeElapsed.startTime();
             robot.move("forward", 24, 1);
             sleep(500);
@@ -120,15 +96,13 @@ public class MecanumAuto extends LinearOpMode {
 
              */
 
-
-
-            robot.moveInAnyDirection(45, 18, 1);
+            robot.moveInAnyDirection(45, 36, 1);
             sleep(500);
-            robot.moveInAnyDirection(315, 18, 1);
+            robot.moveInAnyDirection(315, 36, 1);
             sleep(500);
-            robot.moveInAnyDirection(225, 18, 1);
+            robot.moveInAnyDirection(225, 36, 1);
             sleep(500);
-            robot.moveInAnyDirection(135, 18, 1);
+            robot.moveInAnyDirection(135, 36, 1);
             sleep(500);
 
             sleep(5000);
@@ -150,36 +124,5 @@ public class MecanumAuto extends LinearOpMode {
             telemetry.addData("Time", timeElapsed.time());
             timeElapsed.reset();
         }
-
-
-        //TODO: Target Zone A
-        /*
-        if (opModeIsActive() && !isStopRequested()) {
-            robot.move("forward", 64, 1);
-            sleep(100);
-            robot.move("right", 36,  1);
-        }
-         */
-
-        //TODO: Target Zone B
-        /*
-        if (opModeIsActive() && !isStopRequested()) {
-            robot.move("forward", 88, 1);
-            sleep(100);
-            robot.move("right", 15, 1);
-        }
-         */
-
-
-        //TODO: Target Zone C
-        /*
-        if (opModeIsActive() && !isStopRequested()) {
-            robot.move("forward", 64, 1);
-            sleep(100);
-            robot.move("right", 35, 1);
-            sleep(100);
-            robot.move("forward", 48, 1);
-        }
-         */
     }
 }

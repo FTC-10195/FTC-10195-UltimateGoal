@@ -21,12 +21,12 @@ public class RobotControlMethods
     final double WHEEL_SIZE_IN_INCHES = 3.94; // Diameter of the wheel (in inches)
 
     double decelerationThreshold = 70; // When to start decelerating; TODO: Tune
-    double motorPowerMultiplier = 1; // Controls the speed of the robot; TODO: Tune
+    double motorPowerMultiplier = 0.4; // Controls the speed of the robot; TODO: Tune
 
     // State variables
     private DcMotor fl, fr, bl, br;
     private double flRawPower, frRawPower, blRawPower, brRawPower;
-    private int currentAngle;
+    private double currentAngle;
     BNO055IMU imu;
     Orientation lastAngles = new Orientation();
 
@@ -46,9 +46,9 @@ public class RobotControlMethods
         this.imu = imu;
     }
 
-    public void move(final String moveDirection, final int distanceInInches, final double motorPower)
+    public void move(final String moveDirection, final double distanceInInches, final double motorPower)
     {
-        int ticks = calculateTicks(distanceInInches);
+        double ticks = calculateTicks(distanceInInches);
         resetMotors();
         determineMotorTicksInAnyDirection(moveDirection, ticks, motorPower);
         runProgram(ticks);
@@ -67,7 +67,7 @@ public class RobotControlMethods
         br.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
 
-    public void determineMotorTicksInAnyDirection(final String direction, int ticks, double motorPower)
+    public void determineMotorTicksInAnyDirection(final String direction, double ticks, double motorPower)
     {
         switch (direction)
         {
