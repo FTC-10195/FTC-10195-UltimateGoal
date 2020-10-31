@@ -21,7 +21,7 @@ public class RobotControlMethods
     final double WHEEL_SIZE_IN_INCHES = 3.94; // Diameter of the wheel (in inches)
 
     double decelerationThreshold = 70; // When to start decelerating; TODO: Tune
-    double motorPowerMultiplier = 0.4; // Controls the speed of the robot; TODO: Tune
+    double motorPowerMultiplier = 0.7; // Controls the speed of the robot; TODO: Tune
 
     // State variables
     private DcMotor fl, fr, bl, br;
@@ -157,17 +157,17 @@ public class RobotControlMethods
 
         switch (direction){
             case "left":
-                flPower = -motorPowerMultiplier * flRawPower;
-                frPower = motorPowerMultiplier * frRawPower;
-                blPower = -motorPowerMultiplier * blRawPower;
-                brPower = motorPowerMultiplier * brRawPower;
+                flPower = -motorPowerMultiplier;
+                frPower = motorPowerMultiplier;
+                blPower = -motorPowerMultiplier;
+                brPower = motorPowerMultiplier;
                 break;
 
             case "right":
-                flPower = motorPowerMultiplier * flRawPower;
-                frPower = -motorPowerMultiplier * frRawPower;
-                blPower = motorPowerMultiplier * blRawPower;
-                brPower = -motorPowerMultiplier * brRawPower;
+                flPower = motorPowerMultiplier;
+                frPower = -motorPowerMultiplier;
+                blPower = motorPowerMultiplier;
+                brPower = -motorPowerMultiplier;
                 break;
 
             default:

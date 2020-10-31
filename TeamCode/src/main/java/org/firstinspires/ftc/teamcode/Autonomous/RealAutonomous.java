@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.TeleOp.VuforiaTest;
+
 @Autonomous(name = "RealAutonomous", group = "a")
 public class RealAutonomous extends LinearOpMode {
     ElapsedTime timeElapsed;
@@ -17,6 +19,7 @@ public class RealAutonomous extends LinearOpMode {
 
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
             null);
+    VuforiaTest vuforia = new VuforiaTest();
 
     public void setup() {
         IMUSetup();
@@ -77,17 +80,17 @@ public class RealAutonomous extends LinearOpMode {
 
             // Detect # of rings
 
+
             switch (zone) {
                 case "A":
                     robot.move("forward", 28, 1);
-                    robot.move("right", 37, 1);
-                    sleep(100);
+                    robot.move("right", 37, 0.5);
                     robot.move("backward", 72, 1);
                     robot.move("left", 15, 1);
                     robot.move("forward", 64, 1);
-                    robot.move("right", 9, 1);
-                    robot.move("backward", 9, 1);
                     robot.move("right", 9, 0.5);
+                    robot.move("backward", 9, 1);
+                    robot.move("right", 12, 0.35);
                     robot.move("left", 55, 1);
             }
 
