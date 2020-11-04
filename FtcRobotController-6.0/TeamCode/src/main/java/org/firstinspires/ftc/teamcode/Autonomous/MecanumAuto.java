@@ -62,13 +62,13 @@ public class MecanumAuto extends LinearOpMode {
         robot.resetRobotControlMethods(fl, fr, bl, br, imu);
     }
 
-    public void runOpMode() {
+    public void runOpMode() throws InterruptedException {
         timeElapsed = new ElapsedTime();
         setup();
         runRobot();
     }
 
-    public void runRobot() {
+    public void runRobot() throws InterruptedException {
         waitForStart();
 
         //TODO: Actual Autonomous

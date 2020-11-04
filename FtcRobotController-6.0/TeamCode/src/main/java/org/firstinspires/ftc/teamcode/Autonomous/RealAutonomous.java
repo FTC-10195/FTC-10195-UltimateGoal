@@ -105,6 +105,7 @@ public class RealAutonomous extends LinearOpMode {
     public void runRobot() throws InterruptedException {
 
         do {
+            setZone();
             telemetry.addData("Analysis", pipeline.getAnalysis());
             telemetry.addData("Rings", pipeline.position);
             telemetry.addData("Zone", zone);
