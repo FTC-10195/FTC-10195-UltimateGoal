@@ -18,7 +18,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
+/*
 package org.firstinspires.ftc.teamcode.Autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -29,7 +29,7 @@ import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.*;
 
 @TeleOp
-public class EasyOpenCV extends LinearOpMode
+public class EasyOpenCVTest extends LinearOpMode
 {
     OpenCvInternalCamera phoneCam;
     UltimateGoalDeterminationPipeline pipeline;
@@ -69,9 +69,8 @@ public class EasyOpenCV extends LinearOpMode
 
     public static class UltimateGoalDeterminationPipeline extends OpenCvPipeline
     {
-        /*
-         * An enum to define the skystone position
-         */
+        // An enum to define the skystone position
+
         public enum RingPosition
         {
             FOUR,
@@ -79,15 +78,13 @@ public class EasyOpenCV extends LinearOpMode
             ZERO
         }
 
-        /*
-         * Some color constants
-         */
+        //Some color constants
+
         static final Scalar BLUE = new Scalar(0, 0, 255);
         static final Scalar RED = new Scalar(255, 0, 0);
 
-        /*
-         * The core values which define the location and size of the sample regions
-         */
+        // The core values which define the location and size of the sample regions
+
         static final Point RegionTopLeftPoint = new Point(181,115);
 
         static final int REGION_WIDTH = 70;
@@ -103,9 +100,8 @@ public class EasyOpenCV extends LinearOpMode
                 RegionTopLeftPoint.x + REGION_WIDTH,
                 RegionTopLeftPoint.y + REGION_HEIGHT);
 
-        /*
-         * Working variables
-         */
+        // Working variables
+
         Mat RegionCb;
         Mat YCrCb = new Mat();
         Mat Cb = new Mat();
@@ -114,17 +110,16 @@ public class EasyOpenCV extends LinearOpMode
         // Volatile since accessed by OpMode thread w/o synchronization
         public volatile RingPosition position = RingPosition.FOUR;
 
-        /*
-         * This function takes the RGB frame, converts to YCrCb,
-         * and extracts the Cb channel to the 'Cb' variable
-         */
-        void inputToCb(Mat input)
+         // This function takes the RGB frame, converts to YCrCb,
+         // and extracts the Cb channel to the 'Cb' variable
+
+         void inputToCb(Mat input)
         {
             Imgproc.cvtColor(input, YCrCb, Imgproc.COLOR_RGB2YCrCb);
             Core.extractChannel(YCrCb, Cb, 1);
         }
 
-        @Override
+
         public void init(Mat firstFrame)
         {
             inputToCb(firstFrame);
@@ -132,7 +127,7 @@ public class EasyOpenCV extends LinearOpMode
             RegionCb = Cb.submat(new Rect(RegionTopLeft, RegionTopRight));
         }
 
-        @Override
+
         public Mat processFrame(Mat input)
         {
             inputToCb(input);
@@ -171,3 +166,4 @@ public class EasyOpenCV extends LinearOpMode
         }
     }
 }
+*/

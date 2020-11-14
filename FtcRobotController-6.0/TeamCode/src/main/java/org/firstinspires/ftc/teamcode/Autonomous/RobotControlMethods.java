@@ -13,8 +13,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import static android.os.SystemClock.sleep;
 import static java.lang.Math.*;
 
-import org.firstinspires.ftc.teamcode.Autonomous.EasyOpenCV;
-
 @Disabled
 public class RobotControlMethods
 {
@@ -48,8 +46,6 @@ public class RobotControlMethods
         this.br = br;
         this.imu = imu;
     }
-
-    EasyOpenCV OpenCV = new EasyOpenCV();
 
     public void move(final String moveDirection, final double distanceInInches, final double motorPower) throws InterruptedException {
         double ticks = calculateTicks(distanceInInches);

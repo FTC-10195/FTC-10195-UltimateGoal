@@ -26,7 +26,7 @@ public class RealAutonomous extends LinearOpMode {
     // State variables
     private DcMotor fl, fr, bl, br;
     BNO055IMU imu;
-    EasyOpenCV.UltimateGoalDeterminationPipeline pipeline;
+    UltimateGoalDeterminationPipeline pipeline;
     OpenCvInternalCamera phoneCam;
 
 
@@ -80,7 +80,7 @@ public class RealAutonomous extends LinearOpMode {
     private void OpenCVSetup() {
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         phoneCam = OpenCvCameraFactory.getInstance().createInternalCamera(OpenCvInternalCamera.CameraDirection.BACK, cameraMonitorViewId);
-        pipeline = new EasyOpenCV.UltimateGoalDeterminationPipeline();
+        pipeline = new UltimateGoalDeterminationPipeline();
         phoneCam.setPipeline(pipeline);
 
         // Optimized so the preview isn't messed up
@@ -103,7 +103,6 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     public void runRobot() throws InterruptedException {
-
         do {
             setZone();
             telemetry.addData("Analysis", pipeline.getAnalysis());
@@ -113,54 +112,16 @@ public class RealAutonomous extends LinearOpMode {
         } while (!opModeIsActive());
 
         if (opModeIsActive() && !isStopRequested()) {
-            // Robot instructions go here
-            timeElapsed.startTime();
-
-            setZone();
-
-            robot.move("forward", 36, 1);
-
             switch (zone) {
-                case "A":
-                    robot.move("forward", 28, 1);
-                    robot.move("right", 37, 0.5);
-                    robot.move("backward", 72, 1);
-                    robot.move("left", 15, 1);
-                    robot.move("forward", 64, 1);
-                    robot.move("right", 9, 0.5);
-                    robot.move("backward", 9, 1);
-                    robot.move("right", 12, 0.35);
-                    robot.move("left", 55, 1);
+                case "A": default:
+                    ZoneA();
                     break;
-
                 case "B":
-                    robot.move("forward", 42, 1);
-                    robot.move("right", 10, 0.5);
-                    robot.move("backward", 24, 1);
-                    robot.move("right", 24, 1);
-                    robot.move("backward", 54, 1);
-                    robot.move("left", 12, 1);
-                    robot.move("forward", 78, 1);
-                    robot.move("left", 12, 1);
-                    robot.move("backward", 24, 1);
-                    robot.move("left", 30, 1);
-
+                    ZoneB();
+                    break;
                 case "C":
-                    robot.move("forward", 66, 1);
-                    robot.move("right", 33, 0.5);
-                    robot.move("backward", 101, 1);
-                    robot.move("left", 12, 1);
-                    robot.move("forward", 101, 1);
-                    robot.move("right", 12, 0.5);
-                    robot.move("backward", 48, 1);
-                    robot.move("left", 55,1);
-
-                default:
-                    try {
-                        throw new IllegalStateException("Zone cannot be determined");
-                    } catch (IllegalStateException e) {
-                        e.printStackTrace();
-                    }
+                    ZoneC();
+                    break;
             }
 
             // shoot ring
@@ -169,13 +130,7 @@ public class RealAutonomous extends LinearOpMode {
             robot.move("right", 7.5, 1);
             // shoot ring
 
-            robot.move("forward", 9, 1);
-
-
-            telemetry.addData("Time Elapsed", timeElapsed.time());
-            telemetry.update();
-            timeElapsed.reset();
-            sleep(5000);
+            robot.move("forward", 18, 1);
         }
     }
 
@@ -183,11 +138,53 @@ public class RealAutonomous extends LinearOpMode {
         switch(pipeline.position) {
             case ZERO:
                 zone = "A";
+                break;
             case ONE:
                 zone = "B";
+                break;
             case FOUR:
                 zone = "C";
+                break;
         }
+    }
+
+    private void ZoneA() throws InterruptedException {
+        robot.move("forward", 64, 1);
+        robot.move("right", 37, 0.3);
+        robot.move("backward", 72, 1);
+        robot.move("left", 15, 1);
+        robot.move("forward", 64, 1);
+        robot.move("right", 9, 0.5);
+        robot.move("backward", 9, 1);
+        robot.move("right", 12, 0.35);
+        robot.move("left", 55, 1);
+    }
+
+    private void ZoneB() throws InterruptedException {
+        robot.move("forward", 88, 1);
+        robot.move("right", 12, 0.5);
+        robot.move("backward", 24, 1);
+        robot.move("right", 24, 1);
+        robot.move("right", 4, 0.3);
+        robot.move("left", 1, 0.3);
+        robot.move("backward", 66, 1);
+        robot.move("right", 5, 0.35);
+        robot.move("left", 12, 1);
+        robot.move("forward", 84, 1);
+        robot.move("left", 16, 1);
+        robot.move("backward", 30, 1);
+        robot.move("left", 26, 1);
+    }
+
+    private void ZoneC() throws InterruptedException {
+        robot.move("forward", 102, 1);
+        robot.move("right", 33, 0.5);
+        robot.move("backward", 101, 1);
+        robot.move("left", 12, 1);
+        robot.move("forward", 101, 1);
+        robot.move("right", 12, 0.5);
+        robot.move("backward", 48, 1);
+        robot.move("left", 55,1);
     }
 
     public static class UltimateGoalDeterminationPipeline extends OpenCvPipeline
@@ -202,45 +199,35 @@ public class RealAutonomous extends LinearOpMode {
             ZERO
         }
 
-        /*
-         * Some color constants
-         */
+        // Some colour constants
         static final Scalar BLUE = new Scalar(0, 0, 255);
         static final Scalar RED = new Scalar(255, 0, 0);
 
-        /*
-         * The core values which define the location and size of the sample regions
-         */
+        // The values for the region that the program detects in
         static final Point RegionTopLeftPoint = new Point(181,115);
-
-        static final int REGION_WIDTH = 70;
-        static final int REGION_HEIGHT = 50;
-
-        final int FOUR_RING_THRESHOLD = 145;
-        final int ONE_RING_THRESHOLD = 130;
-
         Point RegionTopLeft = new Point(
                 RegionTopLeftPoint.x,
                 RegionTopLeftPoint.y);
+        static final int REGION_WIDTH = 70;
+        static final int REGION_HEIGHT = 50;
         Point RegionTopRight = new Point(
                 RegionTopLeftPoint.x + REGION_WIDTH,
                 RegionTopLeftPoint.y + REGION_HEIGHT);
 
-        /*
-         * Working variables
-         */
+        // The values for the ring detection; TODO: Tune
+        final int FOUR_RING_THRESHOLD = 140;
+        final int ONE_RING_THRESHOLD = 130;
+
         Mat RegionCb;
         Mat YCrCb = new Mat();
         Mat Cb = new Mat();
         int average;
 
-        // Volatile since accessed by OpMode thread w/o synchronization
-        private volatile EasyOpenCV.UltimateGoalDeterminationPipeline.RingPosition position = EasyOpenCV.UltimateGoalDeterminationPipeline.RingPosition.FOUR;
+        // Volatile since accessed by OpMode thread without synchronization
+        private volatile UltimateGoalDeterminationPipeline.RingPosition position = UltimateGoalDeterminationPipeline.RingPosition.ZERO;
 
-        /*
-         * This function takes the RGB frame, converts to YCrCb,
-         * and extracts the Cb channel to the 'Cb' variable
-         */
+        // This function takes the RGB frame, converts to YCrCb, and extracts the Cb channel to the
+        // 'Cb' variable
         void inputToCb(Mat input)
         {
             Imgproc.cvtColor(input, YCrCb, Imgproc.COLOR_RGB2YCrCb);
@@ -269,13 +256,16 @@ public class RealAutonomous extends LinearOpMode {
                     BLUE, // The color the rectangle is drawn in
                     2); // Thickness of the rectangle lines
 
-            position = EasyOpenCV.UltimateGoalDeterminationPipeline.RingPosition.ZERO; // Record our analysis
-            if (average > FOUR_RING_THRESHOLD) {
-                position = EasyOpenCV.UltimateGoalDeterminationPipeline.RingPosition.FOUR;
-            } else if (average > ONE_RING_THRESHOLD) {
-                position = EasyOpenCV.UltimateGoalDeterminationPipeline.RingPosition.ONE;
+            // Set initial position
+            position = UltimateGoalDeterminationPipeline.RingPosition.ZERO;
+
+            // Set position
+            if (average >= FOUR_RING_THRESHOLD) {
+                position = UltimateGoalDeterminationPipeline.RingPosition.FOUR;
+            } else if (average >= ONE_RING_THRESHOLD) {
+                position = UltimateGoalDeterminationPipeline.RingPosition.ONE;
             } else {
-                position = EasyOpenCV.UltimateGoalDeterminationPipeline.RingPosition.ZERO;
+                position = UltimateGoalDeterminationPipeline.RingPosition.ZERO;
             }
 
             Imgproc.rectangle(
