@@ -26,8 +26,8 @@ public class RunCode_20192020 extends LinearOpMode {
         movement.resetFunctions(fl, fr, bl, br);
 
         //Reverse motors
-        fl.setDirection(DcMotor.Direction.REVERSE);
-        bl.setDirection(DcMotor.Direction.REVERSE);
+        fr.setDirection(DcMotor.Direction.REVERSE);
+        br.setDirection(DcMotor.Direction.REVERSE);
 
         //Run motors using encoders
         fl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -52,7 +52,7 @@ public class RunCode_20192020 extends LinearOpMode {
 
         //Steps go here
         if (opModeIsActive() && !isStopRequested()) {
-            movement.DriveForward(0.7, 16);
+            movement.DriveForward(0.7, 160);
             sleep(500);
             movement.TurnLeft(0.7, 10);
             sleep(500);

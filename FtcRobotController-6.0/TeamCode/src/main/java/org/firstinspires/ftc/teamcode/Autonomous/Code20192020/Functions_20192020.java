@@ -38,13 +38,11 @@ public class Functions_20192020 {
         //Convert distance to ticks
         int ticks = (int) ((1120) / (3 * 3.14159)) * (distance);
 
-        int doublePower = (int) (3 * power);
-
         //Set target position
         fl.setTargetPosition(ticks);
-        fr.setTargetPosition(ticks + 400);
+        fr.setTargetPosition(ticks);
         bl.setTargetPosition(ticks);
-        br.setTargetPosition(ticks + 400);
+        br.setTargetPosition(ticks);
 
         //Get current position
         int flPos = fl.getCurrentPosition();
@@ -62,9 +60,9 @@ public class Functions_20192020 {
 
             //While all encoder counts are less than the amount given
             fl.setPower(power);
-            fr.setPower(doublePower);
+            fr.setPower(power);
             bl.setPower(power);
-            br.setPower(doublePower);
+            br.setPower(power);
 
             //Get current position to update the position values
             flPos = fl.getCurrentPosition();

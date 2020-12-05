@@ -57,6 +57,8 @@ public class RealAutonomous extends LinearOpMode {
         bl = hardwareMap.dcMotor.get("bl");
         br = hardwareMap.dcMotor.get("br");
 
+        fl.setDirection(DcMotor.Direction.REVERSE);
+        bl.setDirection(DcMotor.Direction.REVERSE);
         fr.setDirection(DcMotor.Direction.REVERSE);
         br.setDirection(DcMotor.Direction.REVERSE);
 
@@ -78,8 +80,10 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     private void OpenCVSetup() {
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        phoneCam = OpenCvCameraFactory.getInstance().createInternalCamera(OpenCvInternalCamera.CameraDirection.BACK, cameraMonitorViewId);
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        phoneCam = OpenCvCameraFactory.getInstance().createInternalCamera(
+                OpenCvInternalCamera.CameraDirection.BACK, cameraMonitorViewId);
         pipeline = new UltimateGoalDeterminationPipeline();
         phoneCam.setPipeline(pipeline);
 
@@ -97,7 +101,6 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     public void runOpMode() throws InterruptedException {
-        timeElapsed = new ElapsedTime();
         setup();
         runRobot();
     }
@@ -111,7 +114,7 @@ public class RealAutonomous extends LinearOpMode {
             telemetry.update();
         } while (!opModeIsActive());
 
-        if (opModeIsActive() && !isStopRequested()) {
+        while (opModeIsActive()) {
             switch (zone) {
                 case "A": default:
                     ZoneA();
@@ -131,6 +134,8 @@ public class RealAutonomous extends LinearOpMode {
             // shoot ring
 
             robot.move("forward", 18, 1);
+
+            break;
         }
     }
 
@@ -189,9 +194,6 @@ public class RealAutonomous extends LinearOpMode {
 
     public static class UltimateGoalDeterminationPipeline extends OpenCvPipeline
     {
-        /*
-         * An enum to define the skystone position
-         */
         public enum RingPosition
         {
             FOUR,
@@ -224,7 +226,8 @@ public class RealAutonomous extends LinearOpMode {
         int average;
 
         // Volatile since accessed by OpMode thread without synchronization
-        private volatile UltimateGoalDeterminationPipeline.RingPosition position = UltimateGoalDeterminationPipeline.RingPosition.ZERO;
+        private volatile UltimateGoalDeterminationPipeline.RingPosition position =
+                UltimateGoalDeterminationPipeline.RingPosition.ZERO;
 
         // This function takes the RGB frame, converts to YCrCb, and extracts the Cb channel to the
         // 'Cb' variable

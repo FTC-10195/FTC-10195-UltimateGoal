@@ -11,42 +11,38 @@
 
 package org.firstinspires.ftc.teamcode.TeleOp;
 
-import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
-
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import static java.lang.Math.abs;
 import static java.lang.Math.sqrt;
 
-@TeleOp(name = "KevalMechTele", group = "a")
-public class KevalMechTele extends OpMode {
+@TeleOp(name = "TestServos", group = "a")
+public class TestServos extends OpMode {
 
     //Configuration parameters
     double slowModePower = 0.35;
-    double mediumModePower = 0.55;
-    double normalModePower = 0.8;
+    double boostModePower = 1;
+    double normalModePower = 0.7;
     double buttonIsPressedThreshold = 0.10;
 
     //State variables
     DcMotor fl, fr, bl, br;
-    BNO055IMU imu;
-    private double currentAngle;
-    Orientation lastAngles = new Orientation();
+    CRServo servo1, servo2;
     double flPower, frPower, blPower, brPower;
 
     @Override
     public void init() {
+        /*
         fl = hardwareMap.dcMotor.get("fl");
         fr = hardwareMap.dcMotor.get("fr");
         bl = hardwareMap.dcMotor.get("bl");
         br = hardwareMap.dcMotor.get("br");
 
         //TODO: Find which motors to reverse
-        fl.setDirection(DcMotor.Direction.REVERSE);
-        bl.setDirection(DcMotor.Direction.REVERSE);
         fr.setDirection(DcMotor.Direction.REVERSE);
         br.setDirection(DcMotor.Direction.REVERSE);
 
@@ -54,18 +50,12 @@ public class KevalMechTele extends OpMode {
         fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+         */
 
-        IMUSetup();
-    }
+        servo1 = hardwareMap.crservo.get("servo1");
+        servo2 = hardwareMap.crservo.get("servo2");
 
-    public void IMUSetup() {
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.mode = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
-        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled = false;
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imu.initialize(parameters);
+
     }
 
     @Override
@@ -77,6 +67,7 @@ public class KevalMechTele extends OpMode {
         gamepad 2 currently has no function
          */
 
+        /*
         double y = gamepad1.left_stick_y * -1; // Reversed
         double x = gamepad1.left_stick_x * (sqrt(2)); // Counteract imperfect strafing
         double rx = gamepad1.right_stick_x;
@@ -89,7 +80,7 @@ public class KevalMechTele extends OpMode {
         if (abs(flPower) > 1 || abs(blPower) > 1 ||
                 abs(frPower) > 1 || abs(brPower) > 1 ) {
             // Find the largest power
-            double max;
+            double max = 0;
             max = Math.max(abs(flPower), abs(blPower));
             max = Math.max(abs(frPower), max);
             max = Math.max(abs(brPower), max);
@@ -104,10 +95,10 @@ public class KevalMechTele extends OpMode {
         }
 
         if (gamepad1.right_trigger > buttonIsPressedThreshold){
-            flPower *= mediumModePower;
-            frPower *= mediumModePower;
-            blPower *= mediumModePower;
-            brPower *= mediumModePower;
+            flPower *= boostModePower;
+            frPower *= boostModePower;
+            blPower *= boostModePower;
+            brPower *= boostModePower;
         }
 
         else if (gamepad1.left_trigger > buttonIsPressedThreshold){
@@ -147,17 +138,20 @@ public class KevalMechTele extends OpMode {
             }
         }
 
-        if (gamepad1.left_bumper) {
-
-        }
-
-        if (gamepad1.right_bumper) {
-
-        }
-
         fl.setPower(flPower);
         fr.setPower(frPower);
         bl.setPower(blPower);
         br.setPower(brPower);
+
+         */
+        while(gamepad1.a) {
+            servo1.setPower(1);
+            servo2.setPower(0);
+        }
+        while(gamepad1.b) {
+            servo1.setPower(0);
+            servo2.setPower(1);
+        }
     }
+
 }
