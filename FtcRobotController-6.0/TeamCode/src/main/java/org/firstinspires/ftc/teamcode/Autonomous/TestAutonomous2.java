@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.Autonomous;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -11,17 +12,15 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
-import static android.os.SystemClock.sleep;
 import static java.lang.Math.PI;
 import static java.lang.Math.abs;
-import static java.lang.Math.max;
 import static java.lang.Math.sin;
-import static java.lang.Math.sqrt;
 
-@Autonomous(name = "TESTING2", group = "c")
+@Autonomous(name = "Forward Forever", group = "c")
 public class TestAutonomous2 extends LinearOpMode {
     ElapsedTime timeElapsed;
     String zone = "A";
+    FtcDashboard dashboard;
 
     // State variables
     private DcMotor fl, fr, bl, br;
@@ -35,6 +34,8 @@ public class TestAutonomous2 extends LinearOpMode {
         motorSetup();
         gyroSetup();
         RobotControlMethodsSetup();
+
+        dashboard = FtcDashboard.getInstance();
     }
 
     public void IMUSetup() {
@@ -88,7 +89,7 @@ public class TestAutonomous2 extends LinearOpMode {
 
         while (opModeIsActive() && !isStopRequested()) {
             // Robot instructions go here
-            move("forward", 84, 0.8);
+            move("forward", 1000, 0.8);
             break;
         }
     }
@@ -210,7 +211,7 @@ public class TestAutonomous2 extends LinearOpMode {
 
             max = abs(max);
 
-            // Divide everything by max (it's positive so we don't need to worry about signs)
+            // Divide everything by max (max is positive so we don't need to worry about signs)
             flPower /= max;
             blPower /= max;
             frPower /= max;
@@ -229,9 +230,8 @@ public class TestAutonomous2 extends LinearOpMode {
             int blCurrentPosition = bl.getCurrentPosition();
             int brCurrentPosition = br.getCurrentPosition();
 
-            int differenceInWheels = ((abs(flCurrentPosition) - abs(frCurrentPosition)) +
-                    (abs(blCurrentPosition) - abs(brCurrentPosition)) + (abs(flCurrentPosition) - abs(brCurrentPosition))
-                    + (abs(blCurrentPosition) - abs(frCurrentPosition))) / 4;
+            int differenceInWheels = (((flCurrentPosition + blCurrentPosition) / 2) -
+                    ((frCurrentPosition + brCurrentPosition) / 2));
             telemetry.addData("fl motor encoder value", flCurrentPosition);
             telemetry.addData("fr motor encoder value", frCurrentPosition);
             telemetry.addData("bl motor encoder value", blCurrentPosition);

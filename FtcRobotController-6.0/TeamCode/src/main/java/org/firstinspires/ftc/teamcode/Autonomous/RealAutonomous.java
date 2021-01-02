@@ -3,8 +3,7 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.hardware.*;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -20,7 +19,6 @@ import org.openftc.easyopencv.OpenCvPipeline;
 
 @Autonomous(name = "RealAutonomous", group = "a")
 public class RealAutonomous extends LinearOpMode {
-    ElapsedTime timeElapsed;
     String zone = "A";
 
     // State variables
@@ -28,7 +26,6 @@ public class RealAutonomous extends LinearOpMode {
     BNO055IMU imu;
     UltimateGoalDeterminationPipeline pipeline;
     OpenCvInternalCamera phoneCam;
-
 
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
             null);
@@ -39,6 +36,7 @@ public class RealAutonomous extends LinearOpMode {
         gyroSetup();
         RobotControlMethodsSetup();
         OpenCVSetup();
+        PIDSetup();
     }
 
     public void IMUSetup() {
@@ -98,6 +96,10 @@ public class RealAutonomous extends LinearOpMode {
                 phoneCam.startStreaming(320,240, OpenCvCameraRotation.SIDEWAYS_LEFT);
             }
         });
+    }
+
+    private void PIDSetup () {
+
     }
 
     public void runOpMode() throws InterruptedException {

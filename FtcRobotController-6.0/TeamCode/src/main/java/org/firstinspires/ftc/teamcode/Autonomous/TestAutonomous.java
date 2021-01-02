@@ -88,11 +88,11 @@ public class TestAutonomous extends LinearOpMode {
             sleep(2000);
 
 
-            robot.turn("left", 90);
+            robot.turn("left", 90, 1);
             sleep(500);
-            robot.turn("right", 180);
+            robot.turn("right", 180, 1);
             sleep(500);
-            robot.turn("left", 90);
+            robot.turn("left", 90, 1);
 
             sleep(2000);
 

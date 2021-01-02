@@ -146,14 +146,13 @@ public class RobotControlMethods
         bl.setPower(motorPowerMultiplier * blRawPower);
         br.setPower(motorPowerMultiplier * brRawPower);
 
-        while ( fl.isBusy() && fr.isBusy() && bl.isBusy() && br.isBusy() )
-        {
+        while ( fl.isBusy() && fr.isBusy() && bl.isBusy() && br.isBusy() ) {
             if (fl.getCurrentPosition() >= (decelerationThreshold * ticks)) {
                 // Decelerates at a certain percent of power per percent of position
                 try {
                     double decelerationRate = -1 / (1 - decelerationThreshold);
                     motorPowerMultiplier *= Math.max(decelerationRate * ((fl.getCurrentPosition() / ticks) - 1), 0.2);
-                } catch (Exception e){
+                } catch (Exception e) {
                     break;
                 }
             }
@@ -167,24 +166,24 @@ public class RobotControlMethods
         sleep(100);
     }
 
-    public void turn(final String direction, final int degrees)
+    public void turn(final String direction, final int degrees, int motorPower)
     {
         double flPower = 0, frPower = 0, blPower = 0, brPower = 0;
         resetAngle();
 
         switch (direction){
             case "left":
-                flPower = -motorPowerMultiplier;
-                frPower = motorPowerMultiplier;
-                blPower = -motorPowerMultiplier;
-                brPower = motorPowerMultiplier;
+                flPower = -motorPowerMultiplier * motorPower;
+                frPower = motorPowerMultiplier * motorPower;
+                blPower = -motorPowerMultiplier * motorPower;
+                brPower = motorPowerMultiplier * motorPower;
                 break;
 
             case "right":
-                flPower = motorPowerMultiplier;
-                frPower = -motorPowerMultiplier;
-                blPower = motorPowerMultiplier;
-                brPower = -motorPowerMultiplier;
+                flPower = motorPowerMultiplier * motorPower;
+                frPower = -motorPowerMultiplier * motorPower;
+                blPower = motorPowerMultiplier * motorPower;
+                brPower = -motorPowerMultiplier * motorPower;
                 break;
 
             default:
@@ -215,15 +214,15 @@ public class RobotControlMethods
         {
             while (true)
             {
-                if ((currentAngle() <= degrees)) break;
+                if ((angleConversion() <= degrees)) break;
             }
         }
 
-        else // degrees > 0
+        else // degrees >= 0
         {
             while (true)
             {
-                if ((currentAngle() >= degrees)) break;
+                if ((angleConversion() >= degrees)) break;
             }
         }
 
@@ -235,11 +234,12 @@ public class RobotControlMethods
         resetAngle();
     }
 
-    private double currentAngle()
+    private double angleConversion()
     {
         Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         double changeInAngle = angles.firstAngle - lastAngles.firstAngle;
 
+        /*
         if (currentAngle > 0)
         {
             currentAngle = ((currentAngle + 180) % (360)) - 180;
@@ -248,6 +248,16 @@ public class RobotControlMethods
         else // currentAngle < 0
         {
             currentAngle = ((currentAngle - 180) % (360)) + 180;
+        }
+
+         */
+
+        if (currentAngle > 179){
+            currentAngle -= 360;
+        } else if(currentAngle < -180){
+            currentAngle += 360;
+        } else if(currentAngle > 360){
+            currentAngle -= 360;
         }
 
         currentAngle += changeInAngle;
