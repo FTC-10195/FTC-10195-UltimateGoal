@@ -3,15 +3,23 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
+import java.util.concurrent.TimeUnit;
+
 import static android.os.SystemClock.sleep;
 import static java.lang.Math.PI;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static java.lang.Math.sin;
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
 
 @Disabled
 public class RobotControlMethods
@@ -20,30 +28,57 @@ public class RobotControlMethods
     final double TICKS_PER_WHEEL_ROTATION = 537.6; //Amount of ticks logged in one wheel rotation
     final double WHEEL_SIZE_IN_INCHES = 3.94; // Diameter of the wheel (in inches)
 
-    double decelerationThreshold = 70; // When to start decelerating; TODO: Tune
-    double motorPowerMultiplier = 0.7; // Controls the speed of the robot; TODO: Tune
+    double decelerationThreshold = 70; // When to start decelerating;
+    double motorPowerMultiplier = 0.7; // Controls the speed of the robot;
 
     // State variables
-    private DcMotor fl, fr, bl, br;
-    private double flRawPower, frRawPower, blRawPower, brRawPower;
-    private double currentAngle;
+    DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
+    Servo ringPusher, wobbleGrabber;
+    double flRawPower, frRawPower, blRawPower, brRawPower;
+    double currentAngle;
     BNO055IMU imu;
     Orientation lastAngles = new Orientation();
 
+    ElapsedTime robotTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
 
-    public RobotControlMethods(DcMotor fl, DcMotor fr, DcMotor bl, DcMotor br, BNO055IMU imu) {
+    // Shooter variables
+    public static double shooterDelay = 2.5;
+    public static double ringPusherIteration = 1;
+    int automaticCooldown = 600;
+    Double[] ringPusherPositions = {0.3, 0.1, 0.4};
+    int currentArrayIndex = 0;
+    ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+
+    public RobotControlMethods(DcMotorEx fl, DcMotorEx fr, DcMotorEx bl, DcMotorEx br, DcMotorEx shooter,
+                               DcMotorEx topIntake, DcMotorEx bottomIntake, DcMotorEx wobbleLifter, Servo ringPusher,
+                               Servo wobbleGrabber, BNO055IMU imu) {
         this.fl = fl;
         this.fr = fr;
         this.bl = bl;
         this.br = br;
+        this.shooter = shooter;
+        this.topIntake = topIntake;
+        this.bottomIntake = bottomIntake;
+        this.wobbleLifter = wobbleLifter;
+        this.ringPusher = ringPusher;
+        this.wobbleGrabber = wobbleGrabber;
         this.imu = imu;
     }
 
-    public void resetRobotControlMethods(DcMotor fl, DcMotor fr, DcMotor bl, DcMotor br, BNO055IMU imu) {
+    public void resetRobotControlMethods(DcMotorEx fl, DcMotorEx fr, DcMotorEx bl, DcMotorEx br, DcMotorEx shooter,
+                                         DcMotorEx topIntake, DcMotorEx bottomIntake, DcMotorEx wobbleLifter,
+                                         Servo ringPusher, Servo wobbleGrabber, BNO055IMU imu) {
         this.fl = fl;
         this.fr = fr;
         this.bl = bl;
         this.br = br;
+        this.shooter = shooter;
+        this.topIntake = topIntake;
+        this.bottomIntake = bottomIntake;
+        this.wobbleLifter = wobbleLifter;
+        this.ringPusher = ringPusher;
+        this.wobbleGrabber = wobbleGrabber;
         this.imu = imu;
     }
 
@@ -331,9 +366,117 @@ public class RobotControlMethods
         brRawPower /= greatestMotorPower;
     }
 
+    public void overcomeEncoderProblem(double distanceInInches, double timeInSeconds, double startPower) {
+        double ticks = calculateTicks(distanceInInches);
+
+        fl.setTargetPosition((int) ticks);
+        fr.setTargetPosition((int) ticks);
+        bl.setTargetPosition((int) ticks);
+        br.setTargetPosition((int) ticks);
+
+        fl.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        fr.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        bl.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        br.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        fl.setPower(startPower);
+        fr.setPower(startPower);
+        bl.setPower(startPower);
+        br.setPower(startPower);
+
+        robotTimer.reset();
+
+        while ( fl.isBusy() && fr.isBusy() && bl.isBusy() && br.isBusy() ) {
+            double intendedPosition = ticks * (robotTimer.time(TimeUnit.SECONDS) / timeInSeconds);
+            double flScaledError = (intendedPosition - fl.getCurrentPosition()) / intendedPosition;
+            double frScaledError = (intendedPosition - fr.getCurrentPosition()) / intendedPosition;
+            double blScaledError = (intendedPosition - bl.getCurrentPosition()) / intendedPosition;
+            double brScaledError = (intendedPosition - br.getCurrentPosition()) / intendedPosition;
+
+            if (flScaledError > startPower || frScaledError > startPower || blScaledError > startPower
+                    || brScaledError > startPower) {
+                double maxPower = Math.max(Math.max(flScaledError, frScaledError), Math.max(blScaledError, brScaledError));
+                flScaledError /= (maxPower / startPower);
+                frScaledError /= (maxPower / startPower);
+                blScaledError /= (maxPower / startPower);
+                brScaledError /= (maxPower / startPower);
+            }
+
+            fl.setPower((distanceInInches > 0) ? max(0, flScaledError) : min(0, flScaledError));
+            fr.setPower((distanceInInches > 0) ? max(0, frScaledError) : min(0, frScaledError));
+            bl.setPower((distanceInInches > 0) ? max(0, blScaledError) : min(0, blScaledError));
+            br.setPower((distanceInInches > 0) ? max(0, brScaledError) : min(0, brScaledError));
+        }
+
+        fl.setPower(0);
+        fr.setPower(0);
+        bl.setPower(0);
+        br.setPower(0);
+
+        sleep(100);
+    }
+
+    public void shootRings(int numberOfRings) {
+        shooter.setPower(1);
+        shooterTimer.reset();
+        while (shooterTimer.time(TimeUnit.SECONDS) < shooterDelay){}
+        while (ringPusherIteration <= (3 * numberOfRings)) {
+            telemetry.addData("ringPusherIteration", ringPusherIteration);
+            telemetry.update();
+            currentArrayIndex++;
+            if (currentArrayIndex >= ringPusherPositions.length) {
+                currentArrayIndex = 0;
+            }
+            telemetry.addLine("Running!");
+            telemetry.update();
+            ringPusher.setPosition(ringPusherPositions[currentArrayIndex]);
+            telemetry.addLine("Still Running!");
+            telemetry.update();
+            ringPusherTimer.reset();
+            ringPusherIteration++;
+
+            sleep(automaticCooldown);
+        }
+        shooter.setPower(0);
+        ringPusherIteration = 1;
+    }
+
+    public void grabWobble() {
+        wobbleGrabber.setPosition(0);
+        sleep(300);
+    }
+
+    public void releaseWobble() {
+        wobbleGrabber.setPosition(0.5);
+        sleep(300);
+    }
+
+    public void liftWobble() {
+        wobbleLifter.setPower(0.4);
+    }
+
+    public void lowerWobble(double time) {
+        wobbleLifter.setPower(-0.4);
+        robotTimer.reset();
+        while (robotTimer.time() < time) {}
+        wobbleLifter.setPower(0);
+    }
+
+    public void wobble(String action) {
+        lowerWobble(0.5);
+        switch (action.toLowerCase()) {
+            case "grab": default:
+                grabWobble();
+                break;
+
+            case "release":
+                releaseWobble();
+                break;
+        }
+        liftWobble();
+    }
+
     public double toRadians(double angleInDegrees){
         return angleInDegrees * PI / 180;
     }
-
-
 }

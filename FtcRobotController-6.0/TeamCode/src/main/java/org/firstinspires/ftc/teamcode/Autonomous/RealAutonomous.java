@@ -22,13 +22,14 @@ public class RealAutonomous extends LinearOpMode {
     String zone = "A";
 
     // State variables
-    private DcMotor fl, fr, bl, br;
+    DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
+    Servo ringPusher, wobbleGrabber;
     BNO055IMU imu;
     UltimateGoalDeterminationPipeline pipeline;
     OpenCvInternalCamera phoneCam;
 
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
-            null);
+            null, null, null, null, null, null, null);
 
     public void setup() {
         IMUSetup();
@@ -36,7 +37,6 @@ public class RealAutonomous extends LinearOpMode {
         gyroSetup();
         RobotControlMethodsSetup();
         OpenCVSetup();
-        PIDSetup();
     }
 
     public void IMUSetup() {
@@ -50,20 +50,29 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     public void motorSetup() {
-        fl = hardwareMap.dcMotor.get("fl");
-        fr = hardwareMap.dcMotor.get("fr");
-        bl = hardwareMap.dcMotor.get("bl");
-        br = hardwareMap.dcMotor.get("br");
+        fl = hardwareMap.get(DcMotorEx.class, "fl");
+        fr = hardwareMap.get(DcMotorEx.class, "fr");
+        bl = hardwareMap.get(DcMotorEx.class, "bl");
+        br = hardwareMap.get(DcMotorEx.class, "br");
+        shooter = hardwareMap.get(DcMotorEx.class, "shooter");
+        topIntake = hardwareMap.get(DcMotorEx.class, "topRoller");
+        bottomIntake = hardwareMap.get(DcMotorEx.class, "bottomRoller");
+        wobbleLifter = hardwareMap.get(DcMotorEx.class, "lift");
 
-        fl.setDirection(DcMotor.Direction.REVERSE);
-        bl.setDirection(DcMotor.Direction.REVERSE);
-        fr.setDirection(DcMotor.Direction.REVERSE);
-        br.setDirection(DcMotor.Direction.REVERSE);
+        ringPusher = hardwareMap.get(Servo.class, "push");
+        wobbleGrabber = hardwareMap.get(Servo.class, "grab");
 
-        fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        fl.setDirection(DcMotorEx.Direction.REVERSE);
+        bl.setDirection(DcMotorEx.Direction.REVERSE);
+        fr.setDirection(DcMotorEx.Direction.REVERSE);
+        br.setDirection(DcMotorEx.Direction.REVERSE);
+        wobbleLifter.setDirection(DcMotorEx.Direction.REVERSE);
+
+        fl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        fr.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        bl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
     }
 
     public void gyroSetup() {
@@ -74,7 +83,8 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     private void RobotControlMethodsSetup() {
-        robot.resetRobotControlMethods(fl, fr, bl, br, imu);
+        robot.resetRobotControlMethods(fl, fr, bl, br, shooter, topIntake, bottomIntake,
+                wobbleLifter, ringPusher, wobbleGrabber, imu);
     }
 
     private void OpenCVSetup() {
@@ -98,10 +108,6 @@ public class RealAutonomous extends LinearOpMode {
         });
     }
 
-    private void PIDSetup () {
-
-    }
-
     public void runOpMode() throws InterruptedException {
         setup();
         runRobot();
@@ -117,6 +123,9 @@ public class RealAutonomous extends LinearOpMode {
         } while (!opModeIsActive());
 
         while (opModeIsActive()) {
+            robot.wobble("grab");
+            robot.move("forward", 60, 1);
+            robot.shootRings(3);
             switch (zone) {
                 case "A": default:
                     ZoneA();
@@ -129,12 +138,6 @@ public class RealAutonomous extends LinearOpMode {
                     break;
             }
 
-            // shoot ring
-            robot.move("right", 7.5, 1);
-            // shoot ring
-            robot.move("right", 7.5, 1);
-            // shoot ring
-
             robot.move("forward", 18, 1);
 
             break;
@@ -142,7 +145,7 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     private void setZone() {
-        switch(pipeline.position) {
+        switch (pipeline.position) {
             case ZERO:
                 zone = "A";
                 break;
@@ -156,8 +159,8 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     private void ZoneA() throws InterruptedException {
-        robot.move("forward", 64, 1);
-        robot.move("right", 37, 0.3);
+        robot.move("forward", 4, 1);
+        robot.move("right", 37, 0.5);
         robot.move("backward", 72, 1);
         robot.move("left", 15, 1);
         robot.move("forward", 64, 1);
@@ -168,7 +171,7 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     private void ZoneB() throws InterruptedException {
-        robot.move("forward", 88, 1);
+        robot.move("forward", 28, 1);
         robot.move("right", 12, 0.5);
         robot.move("backward", 24, 1);
         robot.move("right", 24, 1);
@@ -184,7 +187,7 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     private void ZoneC() throws InterruptedException {
-        robot.move("forward", 102, 1);
+        robot.move("forward", 42, 1);
         robot.move("right", 33, 0.5);
         robot.move("backward", 101, 1);
         robot.move("left", 12, 1);
