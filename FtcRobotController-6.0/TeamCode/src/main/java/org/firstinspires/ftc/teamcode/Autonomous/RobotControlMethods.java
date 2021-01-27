@@ -25,8 +25,9 @@ import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.tel
 public class RobotControlMethods
 {
     // Configuration parameters
-    final double TICKS_PER_WHEEL_ROTATION = 537.6; //Amount of ticks logged in one wheel rotation
+    public final double TICKS_PER_WHEEL_ROTATION = 537.6; //Amount of ticks logged in one wheel rotation
     final double WHEEL_SIZE_IN_INCHES = 3.94; // Diameter of the wheel (in inches)
+    public final double MAX_RPM = 312;
 
     double decelerationThreshold = 70; // When to start decelerating;
     double motorPowerMultiplier = 0.7; // Controls the speed of the robot;
@@ -417,10 +418,7 @@ public class RobotControlMethods
     }
 
     public void shootRings(int numberOfRings) {
-        shooter.setPower(1);
-        shooterTimer.reset();
-        while (shooterTimer.time(TimeUnit.SECONDS) < shooterDelay){}
-        while (ringPusherIteration <= (3 * numberOfRings)) {
+        while (ringPusherIteration <= (2 * numberOfRings + 1)) {
             telemetry.addData("ringPusherIteration", ringPusherIteration);
             telemetry.update();
             currentArrayIndex++;
@@ -437,8 +435,9 @@ public class RobotControlMethods
 
             sleep(automaticCooldown);
         }
-        shooter.setPower(0);
+
         ringPusherIteration = 1;
+        ringPusher.setPosition(ringPusherPositions[0]);
     }
 
     public void grabWobble() {

@@ -204,6 +204,7 @@ public class TimeAutonomous extends LinearOpMode {
                     wobble("grab");
                     moveStraight(50, 0.5);
                     moveStraight(10, 0.25);
+                    wobble("release");
 
                     break;
 
@@ -216,7 +217,15 @@ public class TimeAutonomous extends LinearOpMode {
                     wobble("grab");
                     moveStraight(72, 0.5);
                     strafe(-10, 0.5);
+                    wobble("release");
                     moveStraight(-16, 1);
+
+                    break;
+
+                case "C":
+                    
+
+                    break;
             }
         }
     }

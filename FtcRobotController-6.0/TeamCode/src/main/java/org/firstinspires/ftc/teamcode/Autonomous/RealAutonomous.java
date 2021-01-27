@@ -29,7 +29,8 @@ public class RealAutonomous extends LinearOpMode {
     OpenCvInternalCamera phoneCam;
 
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
-            null, null, null, null, null, null, null);
+            null, null, null, null, null,
+            null, null);
 
     public void setup() {
         IMUSetup();
@@ -112,7 +113,7 @@ public class RealAutonomous extends LinearOpMode {
         setup();
         runRobot();
     }
-
+    
     public void runRobot() throws InterruptedException {
         do {
             setZone();
@@ -123,6 +124,8 @@ public class RealAutonomous extends LinearOpMode {
         } while (!opModeIsActive());
 
         while (opModeIsActive()) {
+            shooter.setVelocity(robot.TICKS_PER_WHEEL_ROTATION * (robot.MAX_RPM / 60)); // Input is ticks per second
+
             robot.wobble("grab");
             robot.move("forward", 60, 1);
             robot.shootRings(3);
@@ -231,8 +234,7 @@ public class RealAutonomous extends LinearOpMode {
         int average;
 
         // Volatile since accessed by OpMode thread without synchronization
-        private volatile UltimateGoalDeterminationPipeline.RingPosition position =
-                UltimateGoalDeterminationPipeline.RingPosition.ZERO;
+        private volatile RingPosition position = RingPosition.ZERO;
 
         // This function takes the RGB frame, converts to YCrCb, and extracts the Cb channel to the
         // 'Cb' variable
@@ -265,15 +267,15 @@ public class RealAutonomous extends LinearOpMode {
                     2); // Thickness of the rectangle lines
 
             // Set initial position
-            position = UltimateGoalDeterminationPipeline.RingPosition.ZERO;
+            position = RingPosition.ZERO;
 
             // Set position
             if (average >= FOUR_RING_THRESHOLD) {
-                position = UltimateGoalDeterminationPipeline.RingPosition.FOUR;
+                position = RingPosition.FOUR;
             } else if (average >= ONE_RING_THRESHOLD) {
-                position = UltimateGoalDeterminationPipeline.RingPosition.ONE;
+                position = RingPosition.ONE;
             } else {
-                position = UltimateGoalDeterminationPipeline.RingPosition.ZERO;
+                position = RingPosition.ZERO;
             }
 
             Imgproc.rectangle(
