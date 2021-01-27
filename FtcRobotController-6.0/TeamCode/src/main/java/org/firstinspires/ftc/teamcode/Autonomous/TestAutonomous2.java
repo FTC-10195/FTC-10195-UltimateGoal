@@ -89,7 +89,8 @@ public class TestAutonomous2 extends LinearOpMode {
 
         while (opModeIsActive() && !isStopRequested()) {
             // Robot instructions go here
-            robot.overcomeEncoderProblem(36, 6, 0.5);
+            move("forward", 1000, 0.8);
+            break;
         }
     }
 

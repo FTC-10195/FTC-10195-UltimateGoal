@@ -13,13 +13,15 @@ package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import java.util.concurrent.TimeUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 import static java.lang.Math.abs;
 import static java.lang.Math.sqrt;
@@ -28,55 +30,45 @@ import static java.lang.Math.sqrt;
 @TeleOp(name = "KevalMechTele", group = "a")
 public class KevalMechTele extends OpMode {
 
-    public enum ShooterState {
-        START_SHOOTER,
-        SHOOT_RINGS,
-        STOP_SHOOTER
-    };
-
     // Configuration parameters
     double slowModePower = 0.35;
     double normalModePower = 0.8;
     double buttonIsPressedThreshold = 0.10;
-    public static double shooterSetPower = 1;
+    public static double shooterSetPower = 0.45;
     double pushServoPosition = 0.3;
 
     double grabPosition = 0.25;
     double setLiftPower = 0;
     double normalLiftPower = 0.25;
     double wobbleLiftPower = 0.4;
-    double wobbleGrabberPosition = 0;
 
-    public static double shooterDelay = 1.5;
-    public static double ringPusherIteration = 1;
+    int cooldown = 500;
 
-    int cooldown = 250;
-    int automaticCooldown = 600;
+    /*
+    boolean fieldOriented = false;
+
+     */
 
     // State variables
-    DcMotor fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
+    DcMotor fl, fr, bl, br, shooter, intake, wobbleLifter;
     Servo ringPusher, wobbleGrabber;
-    double flPower, frPower, blPower, brPower, topIntakePower, bottomIntakePower, shooterPower;
+    BNO055IMU imu;
+    private double currentAngle = 0;
+    Orientation lastAngles = new Orientation();
+    double flPower, frPower, blPower, brPower, intakePower, shooterPower;
 
     // ElapsedTime variables
-    ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-    ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    ElapsedTime PIDTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
 
+    public static PIDCoefficients pidCoefficients = new PIDCoefficients(1,0,0);
+    double integral = 0, lastError = 0, error, deltaError, derivative, P, I, D, correction;
     FtcDashboard dashboard;
+    double currentShooterPower;
 
     Double[] ringPusherPositions = {0.3, 0.1, 0.4};
     int currentArrayIndex = 0;
 
-    long wobbleLastPressed = 0;
-    long shooterLastPressed = 0;
-    long intakeLastPressed = 0;
-
-    boolean isShooterOnForward = false;
-    boolean isShooterOnBackward = false;
-    boolean isIntakeOnForward = false;
-    boolean isIntakeOnBackward = false;
-
-    ShooterState shooterState = ShooterState.START_SHOOTER;
+    long lastPressed = 0;
 
     @Override
     public void init() {
@@ -87,8 +79,7 @@ public class KevalMechTele extends OpMode {
         bl = hardwareMap.dcMotor.get("bl");
         br = hardwareMap.dcMotor.get("br");
         shooter = hardwareMap.dcMotor.get("shooter");
-        topIntake = hardwareMap.dcMotor.get("topRoller");
-        bottomIntake = hardwareMap.dcMotor.get("bottomRoller");
+        intake = hardwareMap.dcMotor.get("intake");
         wobbleLifter = hardwareMap.dcMotor.get("lift");
 
         ringPusher = hardwareMap.servo.get("push");
@@ -105,10 +96,26 @@ public class KevalMechTele extends OpMode {
         bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         wobbleLifter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        IMUSetup();
+        PIDSetup();
 
         wobbleGrabber.setPosition(grabPosition);
 
+    }
+
+    public void IMUSetup() {
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled = false;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+    }
+
+    public void PIDSetup () {
+        
     }
 
     @Override
@@ -120,11 +127,27 @@ public class KevalMechTele extends OpMode {
         gamepad 2 controls the shooter, intake, and wobble goal
          */
 
-        //region Gamepad 1
-
         double y = gamepad1.left_stick_y * -1; // Reversed
         double x = gamepad1.left_stick_x * (sqrt(2)); // Counteract imperfect strafing
         double rx = gamepad1.right_stick_x;
+
+        /*
+        if (gamepad1.y) {
+            fieldOriented = !fieldOriented;
+            currentAngle = 0;
+            telemetry.addData("fieldOriented", fieldOriented);
+            telemetry.update();
+            sleep(50);
+        }
+
+        if (fieldOriented) {
+            double robotAngleInDegrees = getCurrentAngle();
+            double robotAngleInRadians = robotAngleInDegrees * PI/180;
+            y = x * sin(robotAngleInRadians) + y * cos(robotAngleInRadians);
+            x = y * sin(robotAngleInRadians) + x * cos(robotAngleInRadians);
+        }
+
+         */
 
         flPower = (normalModePower) * (y + x - rx);
         frPower = (normalModePower) * (y - x + rx);
@@ -155,88 +178,72 @@ public class KevalMechTele extends OpMode {
             brPower *= slowModePower;
         }
 
-        if (gamepad1.b && gamepad1.dpad_up) {
-            setLiftPower = wobbleLiftPower;
-        } else if (gamepad1.dpad_up) {
-            setLiftPower = normalLiftPower;
-        } else if (gamepad1.dpad_down) {
-            setLiftPower = -wobbleLiftPower;
+        if(gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right || gamepad1.dpad_up) {
+            if (gamepad1.dpad_up) {
+                flPower = 0.25;
+                frPower = 0.25;
+                blPower = 0.25;
+                brPower = 0.25;
+            }
+
+            if (gamepad1.dpad_down) {
+                flPower = -0.25;
+                frPower = -0.25;
+                blPower = -0.25;
+                brPower = -0.25;
+            }
+
+            if (gamepad1.dpad_left) {
+                flPower = -0.25;
+                frPower = 0.25;
+                blPower = 0.25;
+                brPower = -0.25;
+            }
+
+            if (gamepad1.dpad_right) {
+                flPower = 0.25;
+                frPower = -0.25;
+                blPower = -0.25;
+                brPower = 0.25;
+            }
+        }
+
+        if (gamepad2.right_trigger > buttonIsPressedThreshold) {
+            //shootRing(shooterSetPower);
         } else {
-            setLiftPower = 0;
-        }
-
-        if (gamepad1.dpad_left && System.currentTimeMillis() - wobbleLastPressed > cooldown) {
-            wobbleLastPressed = System.currentTimeMillis();
-            // Grab wobble goal
-            wobbleGrabberPosition = 0;
-        }
-
-        if (gamepad1.dpad_right && System.currentTimeMillis() - wobbleLastPressed > cooldown) {
-            wobbleLastPressed = System.currentTimeMillis();
-            // Release wobble goal
-            wobbleGrabberPosition = 0.5;
-        }
-
-        //endregion
-
-
-        //region Gamepad 2
-
-        if (gamepad2.dpad_up && System.currentTimeMillis() - shooterLastPressed > cooldown)  {
-            shooterLastPressed = System.currentTimeMillis();
-            isShooterOnForward = !isShooterOnForward;
-        } else if (gamepad2.dpad_down && System.currentTimeMillis() - shooterLastPressed > cooldown) {
-            shooterLastPressed = System.currentTimeMillis();
-            isShooterOnBackward = !isShooterOnBackward;
-        }
-
-        if (gamepad2.dpad_right && System.currentTimeMillis() - intakeLastPressed > cooldown) {
-            intakeLastPressed = System.currentTimeMillis();
-            isIntakeOnForward = !isIntakeOnForward;
-        } else if (gamepad2.dpad_left && System.currentTimeMillis() - intakeLastPressed > cooldown) {
-            intakeLastPressed = System.currentTimeMillis();
-            isIntakeOnBackward = !isIntakeOnBackward;
-        }
-
-        if (isShooterOnForward) {
-            shooterPower = shooterSetPower;
-        } else if (isShooterOnBackward) {
-            shooterPower = -shooterSetPower;
-        } else {
-            shooterPower = 0;
-        }
-
-        if (isIntakeOnForward) {
-            topIntakePower = -1;
-            bottomIntakePower = -1;
-        } else if (isIntakeOnBackward) {
-            topIntakePower = 1;
-            bottomIntakePower = 1;
-        } else {
-            topIntakePower = 0;
-            bottomIntakePower = 0;
+            integral = 0;
+            lastError = 0;
+            error = 0;
+            deltaError = 0;
+            derivative = 0;
+            P = 0;
+            I = 0;
+            D = 0;
+            correction = 0;
         }
 
         if (gamepad2.a) {
             shooterPower = shooterSetPower;
-        } else {
-            shooterPower = 0;
+        }
+
+        if (gamepad2.left_trigger > buttonIsPressedThreshold) {
+            intakePower = 1;
         }
 
         if (gamepad2.y) {
-            topIntakePower = 1;
+            intakePower = -1;
         }
 
-        if (gamepad2.right_bumper && System.currentTimeMillis() - wobbleLastPressed > cooldown) {
-            wobbleLastPressed = System.currentTimeMillis();
+        if (gamepad2.right_bumper && System.currentTimeMillis() - lastPressed > cooldown) {
+            lastPressed = System.currentTimeMillis();
             currentArrayIndex++;
             if(currentArrayIndex >= ringPusherPositions.length) {
                 currentArrayIndex = 0;
             }
             pushServoPosition = ringPusherPositions[currentArrayIndex];
         }
-        else if (gamepad2.left_bumper && System.currentTimeMillis() - wobbleLastPressed > cooldown) {
-            wobbleLastPressed = System.currentTimeMillis();
+        else if (gamepad2.left_bumper && System.currentTimeMillis() - lastPressed > cooldown) {
+            lastPressed = System.currentTimeMillis();
             currentArrayIndex--;
             if(currentArrayIndex < 0) {
                 currentArrayIndex = ringPusherPositions.length - 1;
@@ -244,65 +251,90 @@ public class KevalMechTele extends OpMode {
             pushServoPosition = ringPusherPositions[currentArrayIndex];
         }
 
-        switch (shooterState) {
-            case START_SHOOTER:
-                if (gamepad2.x) {
-                    shooterPower = shooterSetPower;
-                    isShooterOnForward = true;
-                    pushServoPosition = 0.3;
-                    shooterTimer.reset();
-
-                    shooterState = ShooterState.SHOOT_RINGS;
-                }
-                break;
-
-            case SHOOT_RINGS:
-                shooterPower = shooterSetPower;
-                if (shooterTimer.time(TimeUnit.SECONDS) >= shooterDelay) {
-                    if (ringPusherTimer.time(TimeUnit.MILLISECONDS) >= automaticCooldown && ringPusherIteration <= 9) {
-                        currentArrayIndex++;
-                        if (currentArrayIndex >= ringPusherPositions.length) {
-                            currentArrayIndex = 0;
-                        }
-                        pushServoPosition = ringPusherPositions[currentArrayIndex];
-                        ringPusherTimer.reset();
-                        ringPusherIteration++;
-                    } else if (ringPusherIteration > 9) {
-                        shooterState = ShooterState.STOP_SHOOTER;
-                    }
-                }
-                break;
-
-            case STOP_SHOOTER:
-                shooterPower = 0;
-                ringPusherIteration = 1;
-                shooterState = ShooterState.START_SHOOTER;
-                break;
+        if (gamepad2.dpad_left && System.currentTimeMillis() - lastPressed > cooldown) {
+            lastPressed = System.currentTimeMillis();
+            // Grab wobble goal
+            wobbleGrabber.setPosition(0.1);
         }
 
-        if (gamepad2.b && shooterState != ShooterState.START_SHOOTER) {
-            shooterState = ShooterState.STOP_SHOOTER;
+        if (gamepad2.dpad_right && System.currentTimeMillis() - lastPressed > cooldown) {
+            lastPressed = System.currentTimeMillis();
+            // Release wobble goal
+            wobbleGrabber.setPosition(0.5);
+        }
+
+        if (gamepad2.b) {
+            setLiftPower = wobbleLiftPower;
+        } else {
+            setLiftPower = normalLiftPower;
+        }
+
+        if (gamepad2.dpad_up) {
+            wobbleLifter.setPower(setLiftPower);
+        } else if (gamepad2.dpad_down) {
+            wobbleLifter.setPower(-setLiftPower);
+        } else {
+            wobbleLifter.setPower(0);
         }
 
         fl.setPower(flPower);
         fr.setPower(frPower);
         bl.setPower(blPower);
         br.setPower(brPower);
-        topIntake.setPower(topIntakePower);
-        bottomIntake.setPower(bottomIntakePower);
+        intake.setPower(intakePower);
         shooter.setPower(shooterPower);
-        wobbleLifter.setPower(setLiftPower);
 
         ringPusher.setPosition(pushServoPosition);
-        wobbleGrabber.setPosition(wobbleGrabberPosition);
 
         telemetry.addData("Push Position", ringPusher.getPosition());
         telemetry.addData("Grab Position", wobbleGrabber.getPosition());
-        telemetry.addData("State Machine", shooterState);
         telemetry.update();
 
-        topIntakePower = 0;
-
-        //endregion
+        intakePower = 0;
+        shooterPower = 0;
     }
+
+/*
+    private void shootRing(double targetPower) {
+        Telemetry dashboardTelemetry = dashboard.getTelemetry();
+
+        currentShooterPower = shooter.getPower();
+        dashboardTelemetry.addData("Shooter Power", currentShooterPower);
+        dashboardTelemetry.update();
+
+        error = targetPower - currentShooterPower;
+        deltaError = error - lastError;
+        integral += error * PIDTimer.time();
+
+        derivative = deltaError / PIDTimer.time();
+        P = pidCoefficients.p * error;
+        I = pidCoefficients.i * integral;
+        D = pidCoefficients.d * derivative;
+        correction = P + I + D;
+
+        shooter.setPower(targetPower + correction);
+        lastError = error;
+        PIDTimer.reset();
+    }
+
+ */
+
+    /*
+    private double getCurrentAngle() {
+        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        double changeInAngle = angles.firstAngle - lastAngles.firstAngle;
+        if (currentAngle > 179){
+            currentAngle -= 360;
+        } else if(currentAngle < -180){
+            currentAngle += 360;
+        } else if(currentAngle > 360){
+            currentAngle -= 360;
+        }
+        currentAngle += changeInAngle;
+        lastAngles = angles;
+
+        return currentAngle;
+    }
+
+     */
 }

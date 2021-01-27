@@ -1,23 +1,10 @@
-/*
-26.75 inches per second
-Make sure battery voltage is as close to 12.77V as possible
- */
-
 package org.firstinspires.ftc.teamcode.Autonomous;
 
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.config.Config;
-import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -30,24 +17,11 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvInternalCamera;
 import org.openftc.easyopencv.OpenCvPipeline;
 
-import java.util.concurrent.TimeUnit;
-
-@Config
-@Autonomous(name = "TimeAutonomous", group = "1", preselectTeleOp = "KevalMechTele")
+@Autonomous(name = "TimeAutonomous", group = "1")
 public class TimeAutonomous extends LinearOpMode {
 
     // Motor variables
-    DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
-    Servo ringPusher, wobbleGrabber;
-
-    // Shooter variables
-    public static double shooterDelay = 2.5;
-    public static double ringPusherIteration = 1;
-    int automaticCooldown = 600;
-    Double[] ringPusherPositions = {0.3, 0.1, 0.4};
-    int currentArrayIndex = 0;
-    ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-    ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    DcMotorEx fl, fr, bl, br;
 
     // Setup of ElapsedTime to track how long the robot is running; integral to a time-based autonomous
     ElapsedTime elapsedTime = new ElapsedTime();
@@ -59,16 +33,6 @@ public class TimeAutonomous extends LinearOpMode {
     // The zone to place the wobble goals in, depends on the number of rings
     String zone;
 
-    // IMU variables
-    BNO055IMU imu;
-    private double currentAngle = 0;
-    Orientation lastAngles = new Orientation();
-
-    FtcDashboard dashboard = FtcDashboard.getInstance();
-
-    public static double inchesInOneSecond = 26.75;
-    public static double defaultPower = 0.5;
-
     /**
      * The main setup function; this occurs during init
      * Contains two other setup functions: motorSetup() and OpenCVSetup()
@@ -76,7 +40,6 @@ public class TimeAutonomous extends LinearOpMode {
     public void setup() {
         motorSetup();
         OpenCVSetup();
-        IMUSetup();
     }
 
     /**
@@ -88,13 +51,6 @@ public class TimeAutonomous extends LinearOpMode {
         fr = hardwareMap.get(DcMotorEx.class, "fr");
         bl = hardwareMap.get(DcMotorEx.class, "bl");
         br = hardwareMap.get(DcMotorEx.class, "br");
-        shooter = hardwareMap.get(DcMotorEx.class, "shooter");
-        topIntake = hardwareMap.get(DcMotorEx.class, "topRoller");
-        bottomIntake = hardwareMap.get(DcMotorEx.class, "bottomRoller");
-        wobbleLifter = hardwareMap.get(DcMotorEx.class, "lift");
-
-        ringPusher = hardwareMap.get(Servo.class, "push");
-        wobbleGrabber = hardwareMap.get(Servo.class, "grab");
 
         fl.setDirection(DcMotorEx.Direction.REVERSE);
         bl.setDirection(DcMotorEx.Direction.REVERSE);
@@ -130,16 +86,6 @@ public class TimeAutonomous extends LinearOpMode {
                 phoneCam.startStreaming(320,240, OpenCvCameraRotation.SIDEWAYS_LEFT);
             }
         });
-    }
-
-    public void IMUSetup() {
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.mode = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
-        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled = false;
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imu.initialize(parameters);
     }
 
     /**
@@ -191,45 +137,17 @@ public class TimeAutonomous extends LinearOpMode {
     public void runRobot() {
         // Set movePower negative to move left/down
         if (opModeIsActive() && !isStopRequested()) {
-            wobble("grab");
-            //moveStraight(59, 0.5);
-            moveStraight(59, 0.75);
-            shootRings(3);
-            switch (zone) {
-                case "A": default:
-                    strafe(44, 0.5);
-                    moveStraight(12, 0.5);
-                    wobble("release");
-                    moveStraight(-60, 0.5);
-                    wobble("grab");
-                    moveStraight(50, 0.5);
-                    moveStraight(10, 0.25);
-
-                    break;
-
-                case "B":
-                    strafe(20, 0.5);
-                    moveStraight(32, 0.5);
-                    wobble("release");
-                    strafe(22, 0.5);
-                    moveStraight(-80, 0.5);
-                    wobble("grab");
-                    moveStraight(72, 0.5);
-                    strafe(-10, 0.5);
-                    moveStraight(-16, 1);
-            }
+            moveStraight(5, 0.25);
+            moveStrafe(5, 0.25);
         }
     }
 
     /**
      * This function controls the forward and backward movement of the robot
-     * @param inches The number of inches that the robot moves
+     * @param time The amount of time (in seconds) that the robot runs
      * @param movePower The power given to the wheels; negative if moving backwards
      */
-    public void moveStraight(double inches, double movePower) {
-        inches *= (defaultPower / movePower); // normalizes value of "inches" back to value at default power
-        double time = inches / inchesInOneSecond; // time = distance / speed
-
+    public void moveStraight(double time, double movePower) {
         fl.setPower(movePower);
         fr.setPower(movePower);
         bl.setPower(movePower);
@@ -238,25 +156,17 @@ public class TimeAutonomous extends LinearOpMode {
         elapsedTime.reset();
 
         while (opModeIsActive() && elapsedTime.seconds() < time) {
-            telemetry.addData("Path", "Moving Straight: %2.5f S Elapsed", elapsedTime.seconds());
+            telemetry.addData("Path", "Leg 1: %2.5f S Elapsed", elapsedTime.seconds());
             telemetry.update();
         }
-
-        fl.setPower(0);
-        fr.setPower(0);
-        bl.setPower(0);
-        br.setPower(0);
     }
 
     /**
      * This function controls the strafing movement of the robot
-     * @param inches The amount of time (in seconds) that the robot runs
+     * @param time The amount of time (in seconds) that the robot runs
      * @param movePower The power given to the wheels; negative if moving left and positive if moving right
      */
-    public void strafe(double inches, double movePower) {
-        inches *= (movePower / defaultPower);
-        double time = inches / inchesInOneSecond;
-
+    public void moveStrafe(double time, double movePower) {
         fl.setPower(movePower);
         fr.setPower(-movePower);
         bl.setPower(-movePower);
@@ -268,135 +178,6 @@ public class TimeAutonomous extends LinearOpMode {
             telemetry.addData("Path", "Leg 2: %2.5f S Elapsed", elapsedTime.seconds());
             telemetry.update();
         }
-
-        fl.setPower(0);
-        fr.setPower(0);
-        bl.setPower(0);
-        br.setPower(0);
-    }
-
-    public void turn(double angle, double motorPower)
-    {
-        double flPower = 0, frPower = 0, blPower = 0, brPower = 0;
-        resetAngle();
-
-        flPower = motorPower;
-        frPower = -motorPower;
-        blPower = motorPower;
-        brPower = -motorPower;
-
-        fl.setPower(flPower);
-        fr.setPower(frPower);
-        bl.setPower(blPower);
-        br.setPower(brPower);
-
-        TurnUntilAngleReached(angle);
-    }
-
-    private void resetAngle()
-    {
-        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-        currentAngle = 0;
-    }
-
-    private void TurnUntilAngleReached(double degrees)
-    {
-        if (degrees < 0)
-        {
-            while (true)
-            {
-                if ((angleConversion() <= degrees)) break;
-            }
-        }
-
-        else // degrees >= 0
-        {
-            while (true)
-            {
-                if ((angleConversion() >= degrees)) break;
-            }
-        }
-
-        fl.setPower(0);
-        fr.setPower(0);
-        bl.setPower(0);
-        br.setPower(0);
-    }
-
-    private double angleConversion()
-    {
-        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-        double changeInAngle = angles.firstAngle - lastAngles.firstAngle;
-        currentAngle += changeInAngle;
-
-        if (currentAngle > 179 || currentAngle > 360){
-            currentAngle -= 360;
-        } else if(currentAngle < -180){
-            currentAngle += 360;
-        }
-
-        lastAngles = angles;
-        return currentAngle;
-    }
-
-    public void shootRings(int numberOfRings) {
-        shooter.setPower(1);
-        shooterTimer.reset();
-        while (shooterTimer.time(TimeUnit.SECONDS) < shooterDelay){}
-        while (ringPusherIteration <= (3 * numberOfRings)) {
-            telemetry.addData("ringPusherIteration", ringPusherIteration);
-            telemetry.update();
-            currentArrayIndex++;
-            if (currentArrayIndex >= ringPusherPositions.length) {
-                currentArrayIndex = 0;
-            }
-            telemetry.addLine("Running!");
-            telemetry.update();
-            ringPusher.setPosition(ringPusherPositions[currentArrayIndex]);
-            telemetry.addLine("Still Running!");
-            telemetry.update();
-            ringPusherTimer.reset();
-            ringPusherIteration++;
-
-            sleep(automaticCooldown);
-        }
-        shooter.setPower(0);
-        ringPusherIteration = 1;
-    }
-
-    public void grabWobble() {
-        wobbleGrabber.setPosition(0);
-        sleep(300);
-    }
-
-    public void releaseWobble() {
-        wobbleGrabber.setPosition(0.5);
-        sleep(300);
-    }
-
-    public void liftWobble() {
-        wobbleLifter.setPower(0.4);
-    }
-
-    public void lowerWobble(double time) {
-        wobbleLifter.setPower(1);
-        elapsedTime.reset();
-        while (opModeIsActive() && elapsedTime.time() < time) {}
-        wobbleLifter.setPower(0);
-    }
-
-    public void wobble(String action) {
-        lowerWobble(0.5);
-        switch (action.toLowerCase()) {
-            case "grab": default:
-                grabWobble();
-                break;
-
-            case "release":
-                releaseWobble();
-                break;
-        }
-        liftWobble();
     }
 
     public static class UltimateGoalDeterminationPipeline extends OpenCvPipeline
@@ -418,15 +199,15 @@ public class TimeAutonomous extends LinearOpMode {
         Point RegionTopLeft = new Point(
                 RegionTopLeftPoint.x,
                 RegionTopLeftPoint.y);
-        static final int REGION_WIDTH = 140;
-        static final int REGION_HEIGHT = 60;
+        static final int REGION_WIDTH = 70;
+        static final int REGION_HEIGHT = 50;
         Point RegionTopRight = new Point(
                 RegionTopLeftPoint.x + REGION_WIDTH,
                 RegionTopLeftPoint.y + REGION_HEIGHT);
 
         // The values for the ring detection
         final int FOUR_RING_THRESHOLD = 140;
-        final int ONE_RING_THRESHOLD = 132;
+        final int ONE_RING_THRESHOLD = 130;
 
         Mat RegionCb;
         Mat YCrCb = new Mat();
@@ -434,7 +215,8 @@ public class TimeAutonomous extends LinearOpMode {
         int average;
 
         // Volatile because it's accessed by the OpMode thread without synchronization
-        private volatile RingPosition position = RingPosition.ZERO;
+        private volatile UltimateGoalDeterminationPipeline.RingPosition position =
+                UltimateGoalDeterminationPipeline.RingPosition.ZERO;
 
         /**
          * Takes the RGB frame, converts it to YCrCb, and extracts the Cb channel to the "Cb" variable
@@ -459,7 +241,7 @@ public class TimeAutonomous extends LinearOpMode {
         }
 
         /**
-         * Draws the rectangle, converts the region colour values to a single value, then sets the
+         * Draws the rectangle, converts the region colour values to a single number, then sets the
          * position of the ring depending on what value is returned
          * @param input
          * @return
@@ -479,15 +261,15 @@ public class TimeAutonomous extends LinearOpMode {
                     2); // Thickness of the rectangle lines
 
             // Set initial ring position and zone
-            position = RingPosition.ZERO;
+            position = UltimateGoalDeterminationPipeline.RingPosition.ZERO;
 
             // Set position
             if (average >= FOUR_RING_THRESHOLD) {
-                position = RingPosition.FOUR;
+                position = UltimateGoalDeterminationPipeline.RingPosition.FOUR;
             } else if (average >= ONE_RING_THRESHOLD) {
-                position = RingPosition.ONE;
+                position = UltimateGoalDeterminationPipeline.RingPosition.ONE;
             } else {
-                position = RingPosition.ZERO;
+                position = UltimateGoalDeterminationPipeline.RingPosition.ZERO;
             }
 
             Imgproc.rectangle(
