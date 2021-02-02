@@ -101,10 +101,10 @@ public class RobotControlMethods
      * @param distanceInInches the distance in inches the robot will travel
      * @return the amount of ticks corresponding to the given amount of degrees
      */
-    public int calculateTicks(final double distanceInInches)
-    {
-        return (int) ((TICKS_PER_WHEEL_ROTATION * distanceInInches) / (WHEEL_SIZE_IN_INCHES * Math.PI));
-    }
+        public int calculateTicks(final double distanceInInches)
+        {
+            return (int) ((TICKS_PER_WHEEL_ROTATION * distanceInInches) / (WHEEL_SIZE_IN_INCHES * Math.PI));
+        }
 
     public void resetMotors()
     {
@@ -473,6 +473,16 @@ public class RobotControlMethods
                 break;
         }
         liftWobble();
+    }
+
+    public void intakeOn() {
+        topIntake.setPower(1);
+        bottomIntake.setPower(1);
+    }
+
+    public void intakeOff() {
+        topIntake.setPower(0);
+        bottomIntake.setPower(0);
     }
 
     public double toRadians(double angleInDegrees){

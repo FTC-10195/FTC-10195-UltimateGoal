@@ -30,10 +30,10 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvInternalCamera;
 import org.openftc.easyopencv.OpenCvPipeline;
 
-import java.util.concurrent.TimeUnit;
+import static java.lang.Math.abs;
 
 @Config
-@Autonomous(name = "TimeAutonomous", group = "1", preselectTeleOp = "KevalMechTele")
+@Autonomous(name = "Autonomous", group = "1", preselectTeleOp = "KevalMechTele")
 public class TimeAutonomous extends LinearOpMode {
 
     // Motor variables
@@ -41,9 +41,9 @@ public class TimeAutonomous extends LinearOpMode {
     Servo ringPusher, wobbleGrabber;
 
     // Shooter variables
-    public static double shooterDelay = 2.5;
-    public static double ringPusherIteration = 1;
-    int automaticCooldown = 600;
+    public static int ringPusherIteration = 1;
+    Integer[] cooldowns = {600, 100, 250};
+    int shooterCooldown = cooldowns[0];
     Double[] ringPusherPositions = {0.3, 0.1, 0.4};
     int currentArrayIndex = 0;
     ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
@@ -97,9 +97,11 @@ public class TimeAutonomous extends LinearOpMode {
         wobbleGrabber = hardwareMap.get(Servo.class, "grab");
 
         fl.setDirection(DcMotorEx.Direction.REVERSE);
-        bl.setDirection(DcMotorEx.Direction.REVERSE);
+        bl.setDirection(DcMotorEx.Direction.FORWARD);
         fr.setDirection(DcMotorEx.Direction.REVERSE);
         br.setDirection(DcMotorEx.Direction.REVERSE);
+        topIntake.setDirection(DcMotorEx.Direction.REVERSE);
+        wobbleLifter.setDirection(DcMotorEx.Direction.REVERSE);
 
         fl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         fr.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -191,39 +193,88 @@ public class TimeAutonomous extends LinearOpMode {
     public void runRobot() {
         // Set movePower negative to move left/down
         if (opModeIsActive() && !isStopRequested()) {
-            wobble("grab");
-            //moveStraight(59, 0.5);
-            moveStraight(59, 0.75);
+            shooter.setPower(1);
+            lowerWobble(0.5);
+
+            sleep(1000);
+
+            //wobble("grab");
+            moveStraight(57, 0.75);
+            sleep(500);
             shootRings(3);
             switch (zone) {
                 case "A": default:
-                    strafe(44, 0.5);
-                    moveStraight(12, 0.5);
-                    wobble("release");
-                    moveStraight(-60, 0.5);
-                    wobble("grab");
-                    moveStraight(50, 0.5);
-                    moveStraight(10, 0.25);
-                    wobble("release");
+                    strafe(60, 0.75);
+                    sleep(500);
+                    strafe(24, 0.25);
+                    sleep(500);
+                    strafe(4, -0.25);
+                    //wobble("release");
+                    moveStraight(44, -0.3);
+                    sleep(500);
+                    moveStraight(12, -0.2);
+                    //wobble("grab");
+                    moveStraight(50, 0.3);
+                    sleep(500);
+                    moveStraight(20, 0.2);
+                    //wobble("release");
 
                     break;
 
                 case "B":
-                    strafe(20, 0.5);
-                    moveStraight(32, 0.5);
-                    wobble("release");
-                    strafe(22, 0.5);
-                    moveStraight(-80, 0.5);
-                    wobble("grab");
-                    moveStraight(72, 0.5);
-                    strafe(-10, 0.5);
-                    wobble("release");
-                    moveStraight(-16, 1);
+                    strafe(20, 0.75);
+                    moveStraight(32, 0.75);
+                    //wobble("release");
+                    strafe(22, 0.75);
+                    moveStraight(72, -0.75);
+                    moveStraight(8, -0.25);
+                    //wobble("grab");
+                    moveStraight(72, 0.75);
+                    strafe(10, -0.25);
+                    //wobble("release");
+                    moveStraight(16, -1);
 
                     break;
 
                 case "C":
-                    
+                    shooter.setPower(0);
+                    strafe(30, 0.5);
+                    moveStraight(24, -1);
+                    sleep(250);
+                    moveStraight(6, 0.5);
+                    intakeOn();
+                    sleep(500);
+                    moveStraight(38, -0.125);
+                    strafe(24, -0.5);
+                    shooter.setPower(1);
+                    moveStraight(36, 0.5);
+                    shootRings(3);
+                    intakeOff();
+
+                    strafe(60, 0.75);
+                    sleep(250);
+                    strafe(12, 0.45);
+                    sleep(250);
+                    strafe(4, -0.25);
+                    moveStraight(60, 0.5);
+                    //wobble("release")
+                    sleep(250);
+                    moveStraight(48, -0.5);
+
+                    /*
+                    strafe(24, 0.5);
+                    intakeOn();
+                    moveStraight(48, -0.5);
+                    moveStraight(12, -0.1);
+                    intakeOff();
+                    sleep(500);
+                    strafe(20, -0.75);
+                    sleep(500);
+                    moveStraight(58, 0.75);
+                    shootRings(1);
+                    moveStraight(6, 0.5);
+
+                     */
 
                     break;
             }
@@ -236,8 +287,10 @@ public class TimeAutonomous extends LinearOpMode {
      * @param movePower The power given to the wheels; negative if moving backwards
      */
     public void moveStraight(double inches, double movePower) {
-        inches *= (defaultPower / movePower); // normalizes value of "inches" back to value at default power
+        inches *= (defaultPower / abs(movePower)); // normalizes value of "inches" back to value at default power
         double time = inches / inchesInOneSecond; // time = distance / speed
+
+        telemetry.addData("Time to Run", time);
 
         fl.setPower(movePower);
         fr.setPower(movePower);
@@ -263,7 +316,7 @@ public class TimeAutonomous extends LinearOpMode {
      * @param movePower The power given to the wheels; negative if moving left and positive if moving right
      */
     public void strafe(double inches, double movePower) {
-        inches *= (movePower / defaultPower);
+        inches *= (defaultPower / abs(movePower));
         double time = inches / inchesInOneSecond;
 
         fl.setPower(movePower);
@@ -349,10 +402,21 @@ public class TimeAutonomous extends LinearOpMode {
     }
 
     public void shootRings(int numberOfRings) {
-        shooter.setPower(1);
-        shooterTimer.reset();
-        while (shooterTimer.time(TimeUnit.SECONDS) < shooterDelay){}
         while (ringPusherIteration <= (3 * numberOfRings)) {
+            switch (ringPusherIteration % 3) {
+                case 0:
+                    shooterCooldown = cooldowns[2];
+                    break;
+
+                case 1:
+                    shooterCooldown = cooldowns[0];
+                    break;
+
+                case 2:
+                    shooterCooldown = cooldowns[1];
+                    break;
+            }
+
             telemetry.addData("ringPusherIteration", ringPusherIteration);
             telemetry.update();
             currentArrayIndex++;
@@ -367,9 +431,10 @@ public class TimeAutonomous extends LinearOpMode {
             ringPusherTimer.reset();
             ringPusherIteration++;
 
-            sleep(automaticCooldown);
+            sleep(shooterCooldown);
         }
-        shooter.setPower(0);
+
+        ringPusher.setPosition(ringPusherPositions[0]);
         ringPusherIteration = 1;
     }
 
@@ -388,7 +453,7 @@ public class TimeAutonomous extends LinearOpMode {
     }
 
     public void lowerWobble(double time) {
-        wobbleLifter.setPower(1);
+        wobbleLifter.setPower(-0.4);
         elapsedTime.reset();
         while (opModeIsActive() && elapsedTime.time() < time) {}
         wobbleLifter.setPower(0);
@@ -406,6 +471,16 @@ public class TimeAutonomous extends LinearOpMode {
                 break;
         }
         liftWobble();
+    }
+
+    public void intakeOn() {
+        topIntake.setPower(1);
+        bottomIntake.setPower(1);
+    }
+
+    public void intakeOff() {
+        topIntake.setPower(0);
+        bottomIntake.setPower(0);
     }
 
     public static class UltimateGoalDeterminationPipeline extends OpenCvPipeline
@@ -427,15 +502,15 @@ public class TimeAutonomous extends LinearOpMode {
         Point RegionTopLeft = new Point(
                 RegionTopLeftPoint.x,
                 RegionTopLeftPoint.y);
-        static final int REGION_WIDTH = 140;
+        static final int REGION_WIDTH = 70;
         static final int REGION_HEIGHT = 60;
-        Point RegionTopRight = new Point(
+        Point RegionBottomRight = new Point(
                 RegionTopLeftPoint.x + REGION_WIDTH,
                 RegionTopLeftPoint.y + REGION_HEIGHT);
 
         // The values for the ring detection
-        final int FOUR_RING_THRESHOLD = 140;
-        final int ONE_RING_THRESHOLD = 132;
+        final int FOUR_RING_THRESHOLD = 135;
+        final int ONE_RING_THRESHOLD = 130;
 
         Mat RegionCb;
         Mat YCrCb = new Mat();
@@ -464,7 +539,7 @@ public class TimeAutonomous extends LinearOpMode {
         {
             inputToCb(firstFrame);
 
-            RegionCb = Cb.submat(new Rect(RegionTopLeft, RegionTopRight));
+            RegionCb = Cb.submat(new Rect(RegionTopLeft, RegionBottomRight));
         }
 
         /**
@@ -479,13 +554,6 @@ public class TimeAutonomous extends LinearOpMode {
             inputToCb(input);
 
             average = (int) Core.mean(RegionCb).val[0];
-
-            Imgproc.rectangle(
-                    input, // Buffer to draw on
-                    RegionTopLeft, // First point which defines the rectangle
-                    RegionTopRight, // Second point which defines the rectangle
-                    BLUE, // The colour the rectangle is drawn in
-                    2); // Thickness of the rectangle lines
 
             // Set initial ring position and zone
             position = RingPosition.ZERO;
@@ -502,9 +570,9 @@ public class TimeAutonomous extends LinearOpMode {
             Imgproc.rectangle(
                     input, // Buffer to draw on
                     RegionTopLeft, // First point which defines the rectangle
-                    RegionTopRight, // Second point which defines the rectangle
+                    RegionBottomRight, // Second point which defines the rectangle
                     RED, // The colour the rectangle is drawn in
-                    -1); // Negative thickness means solid fill
+                    2); // Negative thickness means solid fill
 
             return input;
         }

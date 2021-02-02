@@ -3,7 +3,8 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name = "TESTING", group = "b")
@@ -12,11 +13,12 @@ public class TestAutonomous extends LinearOpMode {
     String zone = "A";
 
     // State variables
-    private DcMotor fl, fr, bl, br;
+    private DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
+    Servo ringPusher, wobbleGrabber;
     BNO055IMU imu;
 
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
-            null);
+            null, null, null, null, null, null, null);
 
     public void setup() {
         IMUSetup();
@@ -36,20 +38,30 @@ public class TestAutonomous extends LinearOpMode {
     }
 
     public void motorSetup() {
-        fl = hardwareMap.dcMotor.get("fl");
-        fr = hardwareMap.dcMotor.get("fr");
-        bl = hardwareMap.dcMotor.get("bl");
-        br = hardwareMap.dcMotor.get("br");
+        fl = hardwareMap.get(DcMotorEx.class, "fl");
+        fr = hardwareMap.get(DcMotorEx.class, "fr");
+        bl = hardwareMap.get(DcMotorEx.class, "bl");
+        br = hardwareMap.get(DcMotorEx.class, "br");
+        shooter = hardwareMap.get(DcMotorEx.class, "shooter");
+        topIntake = hardwareMap.get(DcMotorEx.class, "topRoller");
+        bottomIntake = hardwareMap.get(DcMotorEx.class, "bottomRoller");
+        wobbleLifter = hardwareMap.get(DcMotorEx.class, "lift");
 
-        fl.setDirection(DcMotor.Direction.REVERSE);
-        fr.setDirection(DcMotor.Direction.REVERSE);
-        bl.setDirection(DcMotor.Direction.REVERSE);
-        br.setDirection(DcMotor.Direction.REVERSE);
+        ringPusher = hardwareMap.get(Servo.class, "push");
+        wobbleGrabber = hardwareMap.get(Servo.class, "grab");
 
-        fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        fl.setDirection(DcMotorEx.Direction.REVERSE);
+        bl.setDirection(DcMotorEx.Direction.REVERSE);
+        fr.setDirection(DcMotorEx.Direction.REVERSE);
+        br.setDirection(DcMotorEx.Direction.REVERSE);
+        topIntake.setDirection(DcMotorEx.Direction.REVERSE);
+        bottomIntake.setDirection(DcMotorEx.Direction.REVERSE);
+        wobbleLifter.setDirection(DcMotorEx.Direction.REVERSE);
+
+        fl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        fr.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        bl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
     }
 
     public void gyroSetup() {
@@ -60,7 +72,7 @@ public class TestAutonomous extends LinearOpMode {
     }
 
     private void RobotControlMethodsSetup() {
-        robot.resetRobotControlMethods(fl, fr, bl, br, imu);
+        robot.resetRobotControlMethods(fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter, ringPusher, wobbleGrabber, imu);
     }
 
     public void runOpMode() throws InterruptedException {
