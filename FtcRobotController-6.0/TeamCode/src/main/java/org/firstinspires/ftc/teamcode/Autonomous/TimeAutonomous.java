@@ -14,6 +14,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
@@ -42,12 +43,13 @@ public class TimeAutonomous extends LinearOpMode {
 
     // Shooter variables
     public static int ringPusherIteration = 1;
-    Integer[] cooldowns = {600, 100, 250};
+    public static Integer[] cooldowns = {600, 400, 450};
     int shooterCooldown = cooldowns[0];
     Double[] ringPusherPositions = {0.3, 0.1, 0.4};
     int currentArrayIndex = 0;
     ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
     ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    public static double shooterPower = 0.57;
 
     // Setup of ElapsedTime to track how long the robot is running; integral to a time-based autonomous
     ElapsedTime elapsedTime = new ElapsedTime();
@@ -64,10 +66,11 @@ public class TimeAutonomous extends LinearOpMode {
     private double currentAngle = 0;
     Orientation lastAngles = new Orientation();
 
-    FtcDashboard dashboard = FtcDashboard.getInstance();
-
     public static double inchesInOneSecond = 26.75;
     public static double defaultPower = 0.5;
+
+    FtcDashboard dashboard = FtcDashboard.getInstance();
+    Telemetry dashboardTelemetry = dashboard.getTelemetry();
 
     /**
      * The main setup function; this occurs during init
@@ -167,6 +170,11 @@ public class TimeAutonomous extends LinearOpMode {
             telemetry.addData("Rings", pipeline.position);
             telemetry.addData("Zone", zone);
             telemetry.update();
+
+            dashboardTelemetry.addData("Analysis", pipeline.getAnalysis());
+            dashboardTelemetry.addData("Rings", pipeline.position);
+            dashboardTelemetry.addData("Zone", zone);
+            dashboardTelemetry.update();
         } while (!opModeIsActive());
     }
 
@@ -193,17 +201,23 @@ public class TimeAutonomous extends LinearOpMode {
     public void runRobot() {
         // Set movePower negative to move left/down
         if (opModeIsActive() && !isStopRequested()) {
-            shooter.setPower(1);
+            shooter.setPower(shooterPower);
             lowerWobble(0.5);
 
-            sleep(1000);
+            sleep(500);
 
             //wobble("grab");
-            moveStraight(57, 0.75);
+            moveStraight(54, 0.75);
+            sleep(500);
+            strafe(6, 0.75);
             sleep(500);
             shootRings(3);
+            shooter.setPower(0);
             switch (zone) {
                 case "A": default:
+                    moveStraight(12, 0.5);
+
+                    /*
                     strafe(60, 0.75);
                     sleep(500);
                     strafe(24, 0.25);
@@ -219,38 +233,64 @@ public class TimeAutonomous extends LinearOpMode {
                     moveStraight(20, 0.2);
                     //wobble("release");
 
+                     */
+
                     break;
 
                 case "B":
+                    strafe(24, 0.5);
+                    moveStraight(12, -1);
+                    intakeOn();
+                    moveStraight(24, -0.135);
+                    strafe(24, -0.5);
+                    shooter.setPower(shooterPower);
+                    moveStraight(32, 0.5);
+                    strafe(6, 0.75);
+                    shootRings(3);
+                    intakeOff();
+                    moveStraight(12, 0.75);
+
+                    /*
                     strafe(20, 0.75);
+                    sleep(500);
                     moveStraight(32, 0.75);
+                    sleep(500);
                     //wobble("release");
                     strafe(22, 0.75);
+                    sleep(500);
                     moveStraight(72, -0.75);
+                    sleep(250);
                     moveStraight(8, -0.25);
                     //wobble("grab");
+                    sleep(500);
                     moveStraight(72, 0.75);
+                    sleep(250);
                     strafe(10, -0.25);
                     //wobble("release");
+                    sleep(250);
                     moveStraight(16, -1);
+
+                     */
 
                     break;
 
                 case "C":
-                    shooter.setPower(0);
-                    strafe(30, 0.5);
+                    strafe(24, 0.5);
                     moveStraight(24, -1);
                     sleep(250);
                     moveStraight(6, 0.5);
                     intakeOn();
                     sleep(500);
-                    moveStraight(38, -0.125);
+                    moveStraight(34, -0.135);
                     strafe(24, -0.5);
-                    shooter.setPower(1);
-                    moveStraight(36, 0.5);
+                    shooter.setPower(shooterPower);
+                    moveStraight(32, 0.5);
+                    strafe(6, 0.75);
                     shootRings(3);
                     intakeOff();
+                    moveStraight(12, 0.75);
 
+                    /*
                     strafe(60, 0.75);
                     sleep(250);
                     strafe(12, 0.45);
@@ -261,7 +301,7 @@ public class TimeAutonomous extends LinearOpMode {
                     sleep(250);
                     moveStraight(48, -0.5);
 
-                    /*
+
                     strafe(24, 0.5);
                     intakeOn();
                     moveStraight(48, -0.5);

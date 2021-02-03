@@ -40,7 +40,7 @@ public class KevalMechTele extends OpMode {
     double slowModePower = 0.35;
     double normalModePower = 0.8;
     double buttonIsPressedThreshold = 0.10;
-    public static double shooterSetPower = 1;
+    public static double shooterSetPower = 0.7;
     double pushServoPosition = 0.3;
 
     double grabPosition = 0.25;
