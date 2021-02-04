@@ -49,7 +49,7 @@ public class TimeAutonomous extends LinearOpMode {
     int currentArrayIndex = 0;
     ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
     ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-    public static double shooterPower = 0.57;
+    public static double shooterPower = 0.54;   
 
     // Setup of ElapsedTime to track how long the robot is running; integral to a time-based autonomous
     ElapsedTime elapsedTime = new ElapsedTime();

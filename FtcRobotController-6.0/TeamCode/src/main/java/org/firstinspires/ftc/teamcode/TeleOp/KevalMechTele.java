@@ -40,7 +40,8 @@ public class KevalMechTele extends OpMode {
     double slowModePower = 0.35;
     double normalModePower = 0.8;
     double buttonIsPressedThreshold = 0.10;
-    public static double shooterSetPower = 0.7;
+    public static double shooterSetPower = 0.66;
+    public static double powerShotPower = 0.57;
     double pushServoPosition = 0.3;
 
     double grabPosition = 0.25;
@@ -77,6 +78,8 @@ public class KevalMechTele extends OpMode {
     boolean isShooterOnBackward = false;
     boolean isIntakeOnForward = false;
     boolean isIntakeOnBackward = false;
+
+    boolean powerShot = false;
 
     ShooterState shooterState = ShooterState.START_SHOOTER;
 
@@ -161,11 +164,9 @@ public class KevalMechTele extends OpMode {
             brPower *= slowModePower;
         }
 
-        if (gamepad1.b && gamepad1.dpad_up) {
+        if (gamepad1.right_bumper) {
             setLiftPower = wobbleLiftPower;
-        } else if (gamepad1.dpad_up) {
-            setLiftPower = normalLiftPower;
-        } else if (gamepad1.dpad_down) {
+        } else if (gamepad1.left_bumper) {
             setLiftPower = -wobbleLiftPower;
         } else {
             setLiftPower = 0;
@@ -188,6 +189,10 @@ public class KevalMechTele extends OpMode {
 
         //region Gamepad 2
 
+        if (gamepad2.a && System.currentTimeMillis() - shooterLastPressed > cooldown) {
+            powerShot = !powerShot;
+        }
+
         if (gamepad2.dpad_up && System.currentTimeMillis() - shooterLastPressed > cooldown)  {
             shooterLastPressed = System.currentTimeMillis();
             isShooterOnForward = !isShooterOnForward;
@@ -208,8 +213,10 @@ public class KevalMechTele extends OpMode {
             isIntakeOnForward = false;
         }
 
-        if (isShooterOnForward) {
+        if (isShooterOnForward && !powerShot) {
             shooterPower = shooterSetPower;
+        } else if (isShooterOnForward && powerShot){
+            shooterPower = powerShotPower;
         } else if (isShooterOnBackward) {
             shooterPower = -shooterSetPower;
         } else {
@@ -315,6 +322,7 @@ public class KevalMechTele extends OpMode {
         telemetry.addData("Push Position", ringPusher.getPosition());
         telemetry.addData("Grab Position", wobbleGrabber.getPosition());
         telemetry.addData("State Machine", shooterState);
+        telemetry.addData("Power Shot?", powerShot);
         telemetry.update();
 
         topIntakePower = 0;
