@@ -40,8 +40,8 @@ public class KevalMechTele extends OpMode {
     double slowModePower = 0.35;
     double normalModePower = 0.8;
     double buttonIsPressedThreshold = 0.10;
-    public static double shooterSetPower = 0.66;
-    public static double powerShotPower = 0.57;
+    public static double shooterSetPower = 0.63;
+    public static double powerShotPower = 0.55;
     double pushServoPosition = 0.3;
 
     double grabPosition = 0.25;
@@ -109,13 +109,14 @@ public class KevalMechTele extends OpMode {
         fr.setDirection(DcMotorEx.Direction.REVERSE);
         br.setDirection(DcMotorEx.Direction.REVERSE);
         topIntake.setDirection(DcMotorEx.Direction.REVERSE);
+        wobbleLifter.setDirection(DcMotorEx.Direction.REVERSE);
 
         fl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         fr.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         bl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        wobbleLifter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        wobbleLifter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         wobbleGrabber.setPosition(grabPosition);
     }
@@ -140,8 +141,7 @@ public class KevalMechTele extends OpMode {
         blPower = (normalModePower) * (y - x - rx);
         brPower = (normalModePower) * (y + x + rx);
 
-        if (abs(flPower) > 1 || abs(blPower) > 1 ||
-                abs(frPower) > 1 || abs(brPower) > 1 ) {
+        if (abs(flPower) > 1 || abs(blPower) > 1 || abs(frPower) > 1 || abs(brPower) > 1 ) {
             // Find the largest power
             double max;
             max = Math.max(abs(flPower), abs(blPower));

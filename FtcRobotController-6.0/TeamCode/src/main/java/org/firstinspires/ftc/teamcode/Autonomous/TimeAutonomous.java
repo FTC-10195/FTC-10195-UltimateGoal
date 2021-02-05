@@ -49,7 +49,7 @@ public class TimeAutonomous extends LinearOpMode {
     int currentArrayIndex = 0;
     ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
     ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-    public static double shooterPower = 0.54;   
+    public static double shooterPower = 0.54;
 
     // Setup of ElapsedTime to track how long the robot is running; integral to a time-based autonomous
     ElapsedTime elapsedTime = new ElapsedTime();
@@ -110,6 +110,7 @@ public class TimeAutonomous extends LinearOpMode {
         fr.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         bl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
     }
 
     /**
@@ -213,6 +214,7 @@ public class TimeAutonomous extends LinearOpMode {
             sleep(500);
             shootRings(3);
             shooter.setPower(0);
+
             switch (zone) {
                 case "A": default:
                     moveStraight(12, 0.5);
@@ -242,10 +244,12 @@ public class TimeAutonomous extends LinearOpMode {
                     moveStraight(12, -1);
                     intakeOn();
                     moveStraight(24, -0.135);
-                    strafe(24, -0.5);
+                    strafe(28, -0.5);
                     shooter.setPower(shooterPower);
+                    sleep(250);
                     moveStraight(32, 0.5);
                     strafe(6, 0.75);
+                    sleep(250);
                     shootRings(3);
                     intakeOff();
                     moveStraight(12, 0.75);
@@ -282,7 +286,7 @@ public class TimeAutonomous extends LinearOpMode {
                     intakeOn();
                     sleep(500);
                     moveStraight(34, -0.135);
-                    strafe(24, -0.5);
+                    strafe(28, -0.5);
                     shooter.setPower(shooterPower);
                     moveStraight(32, 0.5);
                     strafe(6, 0.75);
@@ -488,8 +492,11 @@ public class TimeAutonomous extends LinearOpMode {
         sleep(300);
     }
 
-    public void liftWobble() {
+    public void liftWobble(double time) {
         wobbleLifter.setPower(0.4);
+        elapsedTime.reset();
+        while (opModeIsActive() && elapsedTime.time() < time) {}
+        wobbleLifter.setPower(0);
     }
 
     public void lowerWobble(double time) {
@@ -510,7 +517,7 @@ public class TimeAutonomous extends LinearOpMode {
                 releaseWobble();
                 break;
         }
-        liftWobble();
+        liftWobble(0.5);
     }
 
     public void intakeOn() {
