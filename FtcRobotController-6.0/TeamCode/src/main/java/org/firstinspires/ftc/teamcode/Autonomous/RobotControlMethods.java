@@ -25,9 +25,10 @@ import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.tel
 public class RobotControlMethods
 {
     // Configuration parameters
-    public final double TICKS_PER_WHEEL_ROTATION = 537.6; //Amount of ticks logged in one wheel rotation
-    final double WHEEL_SIZE_IN_INCHES = 3.94; // Diameter of the wheel (in inches)
-    public final double MAX_RPM = 312;
+    public final double WHEEL_TICKS_PER_ROTATION = 537.6; //Amount of ticks logged in one wheel rotation
+    public final double WHEEL_DIAMETER_IN_INCHES = 3.94; // Diameter of the wheel (in inches)
+    public final double SHOOTER_TICKS_PER_ROTATION = 560;
+    public final double SHOOTER_MAX_RPM = 312;
 
     double decelerationThreshold = 70; // When to start decelerating;
     double motorPowerMultiplier = 0.7; // Controls the speed of the robot;
@@ -89,11 +90,14 @@ public class RobotControlMethods
      * @param distanceInInches the amount of inches that the robot will travel
      * @param motorPower the speed at which the robot will travel
      */
-    public void move(final String moveDirection, final double distanceInInches, final double motorPower) throws InterruptedException {
+    public void move(final String moveDirection, final double distanceInInches, final double motorPower, long... sleepMilli) throws InterruptedException {
         double ticks = calculateTicks(distanceInInches);
         resetMotors();
         determineMotorTicks(moveDirection, ticks, motorPower);
         runProgram(ticks);
+        for (Long sleep : sleepMilli) {
+            sleep(sleep);
+        }
     }
 
     /**
@@ -103,7 +107,7 @@ public class RobotControlMethods
      */
         public int calculateTicks(final double distanceInInches)
         {
-            return (int) ((TICKS_PER_WHEEL_ROTATION * distanceInInches) / (WHEEL_SIZE_IN_INCHES * Math.PI));
+            return (int) ((WHEEL_TICKS_PER_ROTATION * distanceInInches) / (WHEEL_DIAMETER_IN_INCHES * Math.PI));
         }
 
     public void resetMotors()
@@ -236,6 +240,11 @@ public class RobotControlMethods
         br.setPower(brPower);
 
         TurnUntilAngleReached(degrees);
+
+        fl.setPower(0);
+        fr.setPower(0);
+        bl.setPower(0);
+        br.setPower(0);
     }
 
     private void resetAngle()
@@ -251,6 +260,7 @@ public class RobotControlMethods
             while (true)
             {
                 if ((angleConversion() <= degrees)) break;
+                telemetry.addData("Angle", angleConversion());
             }
         }
 
@@ -259,6 +269,7 @@ public class RobotControlMethods
             while (true)
             {
                 if ((angleConversion() >= degrees)) break;
+                telemetry.addData("Angle", angleConversion());
             }
         }
 
@@ -274,6 +285,7 @@ public class RobotControlMethods
     {
         Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         double changeInAngle = angles.firstAngle - lastAngles.firstAngle;
+        currentAngle += changeInAngle;
 
         /*
         if (currentAngle > 0)
@@ -288,15 +300,12 @@ public class RobotControlMethods
 
          */
 
-        if (currentAngle > 179){
+        if (currentAngle > 180){
             currentAngle -= 360;
         } else if(currentAngle < -180){
             currentAngle += 360;
-        } else if(currentAngle > 360){
-            currentAngle -= 360;
         }
 
-        currentAngle += changeInAngle;
         lastAngles = angles;
         return currentAngle;
     }

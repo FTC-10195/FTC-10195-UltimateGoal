@@ -36,6 +36,12 @@ import static java.lang.Math.abs;
 @Config
 @Autonomous(name = "Autonomous", group = "1", preselectTeleOp = "KevalMechTele")
 public class TimeAutonomous extends LinearOpMode {
+    // Configuration variables
+    public static double inchesInOneSecond = 26.75;
+    public static double defaultPower = 0.5;
+    public static Integer[] cooldowns = {750, 750};
+    Double[] ringPusherPositions = {0.1, 0.4};
+    public static double shooterPower = 0.5;
 
     // Motor variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
@@ -43,13 +49,10 @@ public class TimeAutonomous extends LinearOpMode {
 
     // Shooter variables
     public static int ringPusherIteration = 1;
-    public static Integer[] cooldowns = {600, 400, 450};
     int shooterCooldown = cooldowns[0];
-    Double[] ringPusherPositions = {0.3, 0.1, 0.4};
     int currentArrayIndex = 0;
     ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
     ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-    public static double shooterPower = 0.54;
 
     // Setup of ElapsedTime to track how long the robot is running; integral to a time-based autonomous
     ElapsedTime elapsedTime = new ElapsedTime();
@@ -66,11 +69,14 @@ public class TimeAutonomous extends LinearOpMode {
     private double currentAngle = 0;
     Orientation lastAngles = new Orientation();
 
-    public static double inchesInOneSecond = 26.75;
-    public static double defaultPower = 0.5;
-
+    // FTC Dashboard helps edit variables on the fly and graph telemetry values
     FtcDashboard dashboard = FtcDashboard.getInstance();
     Telemetry dashboardTelemetry = dashboard.getTelemetry();
+
+    // Allows me to import the RPM and ticks per rotation variables
+    RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
+            null, null, null, null, null,
+            null, null);
 
     /**
      * The main setup function; this occurs during init
@@ -104,7 +110,6 @@ public class TimeAutonomous extends LinearOpMode {
         fr.setDirection(DcMotorEx.Direction.REVERSE);
         br.setDirection(DcMotorEx.Direction.REVERSE);
         topIntake.setDirection(DcMotorEx.Direction.REVERSE);
-        wobbleLifter.setDirection(DcMotorEx.Direction.REVERSE);
 
         fl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         fr.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -138,6 +143,9 @@ public class TimeAutonomous extends LinearOpMode {
         });
     }
 
+    /**
+     * Sets up the IMU for turning
+     */
     public void IMUSetup() {
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.mode = BNO055IMU.SensorMode.IMU;
@@ -202,38 +210,41 @@ public class TimeAutonomous extends LinearOpMode {
     public void runRobot() {
         // Set movePower negative to move left/down
         if (opModeIsActive() && !isStopRequested()) {
-            shooter.setPower(shooterPower);
-            lowerWobble(0.5);
-
+            shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
             sleep(500);
-
-            //wobble("grab");
             moveStraight(54, 0.75);
             sleep(500);
             strafe(6, 0.75);
             sleep(500);
-            shootRings(3);
+            shootRings(2);
+            moveStraight(4, 1);
+            moveStraight(4, -1);
+            shootRings(1);
             shooter.setPower(0);
 
             switch (zone) {
                 case "A": default:
                     moveStraight(12, 0.5);
+                    strafe(60, 0.75);
+                    sleep(250);
+                    strafe(18, 0.25);
+                    sleep(250);
+                    strafe(4, -0.25);
+                    moveStraight(12, 0.5);
+                    wobble("release");
+                    strafe(36, 0.75);
+                    sleep(250);
+                    moveStraight(-24, 0.75);
 
                     /*
-                    strafe(60, 0.75);
+                    moveStraight(44, 0.3);
                     sleep(500);
-                    strafe(24, 0.25);
-                    sleep(500);
-                    strafe(4, -0.25);
-                    //wobble("release");
-                    moveStraight(44, -0.3);
+                    moveStraight(12, 0.2);
+                    wobble("grab");
+                    moveStraight(50, -0.3);
                     sleep(500);
                     moveStraight(12, -0.2);
-                    //wobble("grab");
-                    moveStraight(50, 0.3);
-                    sleep(500);
-                    moveStraight(20, 0.2);
-                    //wobble("release");
+                    wobble("release");
 
                      */
 
@@ -245,7 +256,7 @@ public class TimeAutonomous extends LinearOpMode {
                     intakeOn();
                     moveStraight(24, -0.135);
                     strafe(28, -0.5);
-                    shooter.setPower(shooterPower);
+                    shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     sleep(250);
                     moveStraight(32, 0.5);
                     strafe(6, 0.75);
@@ -287,7 +298,7 @@ public class TimeAutonomous extends LinearOpMode {
                     sleep(500);
                     moveStraight(34, -0.135);
                     strafe(28, -0.5);
-                    shooter.setPower(shooterPower);
+                    shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     moveStraight(32, 0.5);
                     strafe(6, 0.75);
                     shootRings(3);
@@ -381,9 +392,16 @@ public class TimeAutonomous extends LinearOpMode {
         br.setPower(0);
     }
 
+    /**
+     * This function controls the rotation of the robot
+     * @param angle # of degrees to turn
+     * @param motorPower The power given to the wheels; negative if turning left and positive if turning right
+     */
     public void turn(double angle, double motorPower)
     {
         double flPower = 0, frPower = 0, blPower = 0, brPower = 0;
+        telemetry.addLine("before resetAngle()");
+        telemetry.update();
         resetAngle();
 
         flPower = motorPower;
@@ -391,35 +409,48 @@ public class TimeAutonomous extends LinearOpMode {
         blPower = motorPower;
         brPower = -motorPower;
 
+        telemetry.addLine("before set powers");
+        telemetry.update();
+
         fl.setPower(flPower);
         fr.setPower(frPower);
         bl.setPower(blPower);
         br.setPower(brPower);
 
+        telemetry.addLine("before TurnUntilAngleReached");
+        telemetry.update();
+
         TurnUntilAngleReached(angle);
     }
 
+    /**
+     * Resets the robot's angle back to 0
+     */
     private void resetAngle()
     {
         lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         currentAngle = 0;
     }
 
+    /**
+     * Turns the specified number of degrees
+     * @param degrees The # of degrees to turn
+     */
     private void TurnUntilAngleReached(double degrees)
     {
         if (degrees < 0)
         {
-            while (true)
-            {
-                if ((angleConversion() <= degrees)) break;
+            while ((angleConversion() > degrees)) {
+                telemetry.addData("Angle", angleConversion());
+                telemetry.update();
             }
         }
 
         else // degrees >= 0
         {
-            while (true)
-            {
-                if ((angleConversion() >= degrees)) break;
+            while (angleConversion() < degrees) {
+                telemetry.addData("Angle", angleConversion());
+                telemetry.update();
             }
         }
 
@@ -429,15 +460,19 @@ public class TimeAutonomous extends LinearOpMode {
         br.setPower(0);
     }
 
+    /**
+     * Takes the robot's angle and changes it; also converts the value back between -180 and 180 if it goes outside
+     * @return The current angle of the robot
+     */
     private double angleConversion()
     {
         Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         double changeInAngle = angles.firstAngle - lastAngles.firstAngle;
         currentAngle += changeInAngle;
 
-        if (currentAngle > 179 || currentAngle > 360){
+        if (currentAngle > 360){
             currentAngle -= 360;
-        } else if(currentAngle < -180){
+        } else if(currentAngle < -360){
             currentAngle += 360;
         }
 
@@ -445,19 +480,19 @@ public class TimeAutonomous extends LinearOpMode {
         return currentAngle;
     }
 
+    /**
+     * Shoots rings
+     * @param numberOfRings The number of rings to shoot
+     */
     public void shootRings(int numberOfRings) {
-        while (ringPusherIteration <= (3 * numberOfRings)) {
-            switch (ringPusherIteration % 3) {
+        while (ringPusherIteration <= (2 * numberOfRings)) {
+            switch (ringPusherIteration % 2) {
                 case 0:
-                    shooterCooldown = cooldowns[2];
+                    shooterCooldown = cooldowns[1];
                     break;
 
                 case 1:
                     shooterCooldown = cooldowns[0];
-                    break;
-
-                case 2:
-                    shooterCooldown = cooldowns[1];
                     break;
             }
 
@@ -482,16 +517,26 @@ public class TimeAutonomous extends LinearOpMode {
         ringPusherIteration = 1;
     }
 
+    /**
+     * Grabs the wobble goal
+     */
     public void grabWobble() {
         wobbleGrabber.setPosition(0);
         sleep(300);
     }
 
+    /**
+     * Releases the wobble goal
+     */
     public void releaseWobble() {
         wobbleGrabber.setPosition(0.5);
         sleep(300);
     }
 
+    /**
+     * Lifts the wobble goal
+     * @param time The amount of time to lift
+     */
     public void liftWobble(double time) {
         wobbleLifter.setPower(0.4);
         elapsedTime.reset();
@@ -499,6 +544,10 @@ public class TimeAutonomous extends LinearOpMode {
         wobbleLifter.setPower(0);
     }
 
+    /**
+     * Lowers the wobble goal
+     * @param time The amount of time to lower
+     */
     public void lowerWobble(double time) {
         wobbleLifter.setPower(-0.4);
         elapsedTime.reset();
@@ -506,6 +555,10 @@ public class TimeAutonomous extends LinearOpMode {
         wobbleLifter.setPower(0);
     }
 
+    /**
+     * Lowers arm, grabs/releases wobble goal, then lifts arm
+     * @param action Whether to grab or release
+     */
     public void wobble(String action) {
         lowerWobble(0.5);
         switch (action.toLowerCase()) {
@@ -520,11 +573,17 @@ public class TimeAutonomous extends LinearOpMode {
         liftWobble(0.5);
     }
 
+    /**
+     * Turns the intake on
+     */
     public void intakeOn() {
         topIntake.setPower(1);
         bottomIntake.setPower(1);
     }
 
+    /**
+     * Turns the intake off
+     */
     public void intakeOff() {
         topIntake.setPower(0);
         bottomIntake.setPower(0);

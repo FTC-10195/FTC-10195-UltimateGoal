@@ -18,9 +18,6 @@ public class ServoTest extends OpMode {
     public void init() {
         ringPusher = hardwareMap.get(Servo.class, "push");
         wobbleGrabber = hardwareMap.get(Servo.class, "grab");
-
-        ringPusher.setPosition(0);
-        wobbleGrabber.setPosition(0);
     }
 
     @Override
@@ -53,6 +50,7 @@ public class ServoTest extends OpMode {
 
         telemetry.addData("Servo 0", servoPositions[0]);
         telemetry.addData("Servo 1", servoPositions[1]);
+        telemetry.addData("Selected Servo", selectedServo);
         telemetry.update();
     }
 }

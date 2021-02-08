@@ -13,6 +13,7 @@ package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -23,12 +24,11 @@ import org.firstinspires.ftc.teamcode.Autonomous.RobotControlMethods;
 
 import java.util.concurrent.TimeUnit;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.sqrt;
+import static android.os.SystemClock.sleep;
 
 @Config
-@TeleOp(name = "KevalMechTeleBackup", group = "b")
-public class KevalMechTeleBackup extends OpMode {
+@TeleOp(name = "ShooterPIDFTest", group = "a")
+public class ShooterPIDFTest extends OpMode {
 
     public enum ShooterState {
         START_SHOOTER,
@@ -37,19 +37,12 @@ public class KevalMechTeleBackup extends OpMode {
     }
 
     // Configuration parameters
-    public static double slowModePower = 0.35;
-    public static double normalModePower = 1;
-    public static double buttonIsPressedThreshold = 0.10;
     public static double shooterSetPower = 0.45;
     public static double powerShotPower = 0.37;
     public static double pushServoPosition = 0.3;
     public static double setLiftPower = 0;
-    public static double wobbleLiftPower = 0.6;
-    public static double wobbleGrabPosition = 0;
-    public static double wobbleReleasePosition = 0.7;
-    public static double wobbleGrabberPosition = wobbleReleasePosition;
     public static int cooldown = 250;
-    public static Double[] ringPusherPositions = {0.5, 0.3, 0.6};
+    public static Double[] ringPusherPositions = {0.1, 0.4};
     public static Integer[] cooldowns = {750, 750};
 
     // State variables
@@ -63,6 +56,7 @@ public class KevalMechTeleBackup extends OpMode {
 
     // FTC Dashboard helps edit variables on the fly and graph telemetry values
     FtcDashboard dashboard;
+    TelemetryPacket packet;
 
     // Shooter/intake variables
     int shooterCooldown = cooldowns[0];
@@ -85,107 +79,46 @@ public class KevalMechTeleBackup extends OpMode {
             null, null, null, null, null,
             null, null);
 
+
+    ElapsedTime shooterPIDFTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    double currentTime = 0;
+    double previousTime = 0;
+    double deltaTime = 0;
+    int currentTicks = 0;
+    int previousTicks = 0;
+    int deltaTicks = 0;
+    double velocity = 0;
+
+    static ElapsedTime shooterRotation = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+
+    public static double setShooterPower;
+    public static double currentShooterVelocity;
+
     @Override
     public void init() {
         dashboard = FtcDashboard.getInstance();
 
         // Set up the motors and servos
-        fl = hardwareMap.get(DcMotorEx.class, "fl");
-        fr = hardwareMap.get(DcMotorEx.class, "fr");
-        bl = hardwareMap.get(DcMotorEx.class, "bl");
-        br = hardwareMap.get(DcMotorEx.class, "br");
         shooter = hardwareMap.get(DcMotorEx.class, "shooter");
         topIntake = hardwareMap.get(DcMotorEx.class, "topRoller");
         bottomIntake = hardwareMap.get(DcMotorEx.class, "bottomRoller");
-        wobbleLifter = hardwareMap.get(DcMotorEx.class, "lift");
         ringPusher = hardwareMap.get(Servo.class, "push");
-        wobbleGrabber = hardwareMap.get(Servo.class, "grab");
 
         // TODO: Find which motors to reverse
-        fl.setDirection(DcMotorEx.Direction.REVERSE);
-        bl.setDirection(DcMotorEx.Direction.FORWARD);
-        fr.setDirection(DcMotorEx.Direction.REVERSE);
-        br.setDirection(DcMotorEx.Direction.REVERSE);
         topIntake.setDirection(DcMotorEx.Direction.REVERSE);
-        wobbleLifter.setDirection(DcMotorEx.Direction.REVERSE);
 
         // Set the motors to stay in place when a power of 0 is passed
-        fl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        fr.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        bl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        wobbleLifter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+
+        shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        shooter.setVelocityPIDFCoefficients(32767 / ((shooterSetPower) * 29120),
+                32767 / ((shooterSetPower) * 291200), 0, 32767 / ((shooterSetPower) * 2912));
+
+        TelemetryPacket packet = new TelemetryPacket();
     }
 
     @Override
     public void loop() {
-        /*
-        The left joystick to move forward/backward/left/right, right joystick to turn
-
-        gamepad 1 controls movement and wobble goal
-        gamepad 2 controls the shooter and intake
-         */
-
-        // region Gamepad 1
-
-        double y = gamepad1.left_stick_y * -1; // Reversed
-        double x = gamepad1.left_stick_x * (sqrt(2)); // Counteract imperfect strafing
-        double rx = gamepad1.right_stick_x;
-
-        flPower = (normalModePower) * (y + x - rx);
-        frPower = (normalModePower) * (y - x + rx);
-        blPower = (normalModePower) * (y - x - rx);
-        brPower = (normalModePower) * (y + x + rx);
-
-        // Normalizes all values back to 1
-        if (abs(flPower) > 1 || abs(blPower) > 1 || abs(frPower) > 1 || abs(brPower) > 1 ) {
-            // Find the largest power
-            double max;
-            max = Math.max(abs(flPower), abs(blPower));
-            max = Math.max(abs(frPower), max);
-            max = Math.max(abs(brPower), max);
-
-            max = abs(max);
-
-            // Divide everything by max (it's positive so we don't need to worry about signs)
-            flPower /= max;
-            blPower /= max;
-            frPower /= max;
-            brPower /= max;
-        }
-
-        // Slow mode
-        if (gamepad1.left_trigger > buttonIsPressedThreshold){
-            flPower *= slowModePower;
-            frPower *= slowModePower;
-            blPower *= slowModePower;
-            brPower *= slowModePower;
-        }
-
-        // Wobble goal up/down
-        if (gamepad1.right_bumper) {
-            setLiftPower = wobbleLiftPower;
-        } else if (gamepad1.left_bumper) {
-            setLiftPower = -wobbleLiftPower;
-        } else {
-            setLiftPower = 0;
-        }
-
-        // Wobble goal grab/release
-        if (gamepad1.dpad_left) {
-            // Grab wobble goal
-            wobbleGrabberPosition = wobbleGrabPosition;
-        }
-
-        if (gamepad1.dpad_right) {
-            // Release wobble goal
-            wobbleGrabberPosition = wobbleReleasePosition;
-        }
-
-        // endregion
-
-
         // region Gamepad 2
 
         // Button to toggle between power shots and regular shooting
@@ -312,26 +245,45 @@ public class KevalMechTeleBackup extends OpMode {
         //endregion
 
         // Sets all powers and servo positions
-        fl.setPower(flPower);
-        fr.setPower(frPower);
-        bl.setPower(blPower);
-        br.setPower(brPower);
         topIntake.setPower(topIntakePower);
         bottomIntake.setPower(bottomIntakePower);
-        wobbleLifter.setPower(setLiftPower);
 
-        shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
         telemetry.addData("shooter velocity", shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
 
         ringPusher.setPosition(pushServoPosition);
-        wobbleGrabber.setPosition(wobbleGrabberPosition);
 
         // Telemetry data to assist drivers
-        telemetry.addData("Push Position", ringPusher.getPosition());
-        telemetry.addData("Grab Position", wobbleGrabber.getPosition());
         telemetry.addData("State Machine", shooterState);
         telemetry.addData("Power Shot?", powerShot);
-        telemetry.addData("Wobble Grabber Position", wobbleGrabberPosition);
         telemetry.update();
+
+        setShooterVelocity();
+    }
+
+    public double calculateShooterVelocity() {
+        currentTime = shooterPIDFTimer.time(TimeUnit.SECONDS);
+        deltaTime = currentTime - previousTime;
+        previousTime = currentTime;
+
+        currentTicks = shooter.getCurrentPosition();
+        deltaTicks = currentTicks - previousTicks;
+        previousTicks = currentTicks;
+
+        velocity = deltaTicks / deltaTime;
+        return velocity;
+    }
+
+    public void setShooterVelocity() {
+        while (isShooterOnForward) {
+            setShooterPower = Math.sin(shooterRotation.time(TimeUnit.SECONDS)) / 3 + 0.5;
+            currentShooterVelocity = calculateShooterVelocity();
+            telemetry.addData("setShooterPower", setShooterPower);
+            telemetry.addData("currentShooterVelocity", currentShooterVelocity);
+            shooter.setVelocity(setShooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
+            sleep(2500);
+            packet.put("Set Shooter Velocity", setShooterPower);
+            packet.put("Current Shooter Velocity", currentShooterVelocity);
+            dashboard.sendTelemetryPacket(packet);
+        }
     }
 }

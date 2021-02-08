@@ -20,6 +20,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 @Autonomous(name = "RealAutonomous", group = "a")
 public class RealAutonomous extends LinearOpMode {
     String zone = "A";
+    double shooterPower = 0.45;
 
     // State variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
@@ -124,7 +125,7 @@ public class RealAutonomous extends LinearOpMode {
         } while (!opModeIsActive());
 
         while (opModeIsActive()) {
-            shooter.setVelocity(robot.TICKS_PER_WHEEL_ROTATION * (robot.MAX_RPM / 60)); // Input is ticks per second
+            shooter.setVelocity(shooterPower * robot.WHEEL_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)); // Input is ticks per second
 
             robot.wobble("grab");
             robot.move("forward", 60, 1);
@@ -162,15 +163,15 @@ public class RealAutonomous extends LinearOpMode {
     }
 
     private void ZoneA() throws InterruptedException {
-        robot.move("forward", 4, 1);
-        robot.move("right", 37, 0.5);
-        robot.move("backward", 72, 1);
-        robot.move("left", 15, 1);
-        robot.move("forward", 64, 1);
-        robot.move("right", 9, 0.5);
-        robot.move("backward", 9, 1);
-        robot.move("right", 12, 0.35);
-        robot.move("left", 55, 1);
+        robot.move("forward", 4, 1, 250);
+        robot.move("right", 37, 0.5, 250);
+        robot.move("backward", 72, 1, 250);
+        robot.move("left", 15, 1, 250);
+        robot.move("forward", 64, 1, 250);
+        robot.move("right", 9, 0.5, 250);
+        robot.move("backward", 9, 1, 250);
+        robot.move("right", 12, 0.35, 250);
+        robot.move("left", 55, 1, 250);
     }
 
     private void ZoneB() throws InterruptedException {
