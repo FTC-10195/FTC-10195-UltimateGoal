@@ -264,14 +264,15 @@ public class KevalMechTele extends OpMode {
                     isShooterOnForward = true;
                     pushServoPosition = ringPusherPositions[0];
                     shooterTimer.reset();
+                }
 
+                if (shooterTimer.time() > shooterWindup) {
                     shooterState = ShooterState.SHOOT_RINGS;
                 }
+
                 break;
 
             case SHOOT_RINGS:
-                while(shooterTimer.time(TimeUnit.MILLISECONDS) < shooterCooldown) {}
-
                 // Different shooter cooldowns for each iteration
                 switch (ringPusherIteration % 3) {
                     case 0:
