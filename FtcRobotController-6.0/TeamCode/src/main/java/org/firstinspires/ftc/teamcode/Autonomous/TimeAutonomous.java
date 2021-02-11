@@ -31,6 +31,8 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvInternalCamera;
 import org.openftc.easyopencv.OpenCvPipeline;
 
+import java.util.concurrent.TimeUnit;
+
 import static java.lang.Math.abs;
 
 @Config
@@ -39,9 +41,9 @@ public class TimeAutonomous extends LinearOpMode {
     // Configuration variables
     public static double inchesInOneSecond = 26.75;
     public static double defaultPower = 0.5;
-    public static Integer[] cooldowns = {750, 750};
-    Double[] ringPusherPositions = {0.1, 0.4};
-    public static double shooterPower = 0.5;
+    public static Integer[] cooldowns = {600, 600, 600};
+    Double[] ringPusherPositions = {0.5, 0.3, 0.6};
+    public static double shooterPower = 0.69;
 
     // Motor variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
@@ -116,6 +118,8 @@ public class TimeAutonomous extends LinearOpMode {
         bl.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+
+        grabWobble();
     }
 
     /**
@@ -212,29 +216,31 @@ public class TimeAutonomous extends LinearOpMode {
         if (opModeIsActive() && !isStopRequested()) {
             shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
             sleep(500);
-            moveStraight(54, 0.75);
+            moveStraight(52, 0.75);
             sleep(500);
             strafe(6, 0.75);
             sleep(500);
             shootRings(2);
             moveStraight(4, 1);
-            moveStraight(4, -1);
+            sleep(100);
+            moveStraight(6, -1);
             shootRings(1);
             shooter.setPower(0);
 
             switch (zone) {
                 case "A": default:
                     moveStraight(12, 0.5);
-                    strafe(60, 0.75);
+                    strafe(48, 0.75);
                     sleep(250);
-                    strafe(18, 0.25);
+                    strafe(12, 0.25);
                     sleep(250);
                     strafe(4, -0.25);
                     moveStraight(12, 0.5);
                     wobble("release");
-                    strafe(36, 0.75);
+                    moveStraight(6, 0.5);
+                    strafe(36, -0.75);
                     sleep(250);
-                    moveStraight(-24, 0.75);
+                    moveStraight(28, -0.75);
 
                     /*
                     moveStraight(44, 0.3);
@@ -263,7 +269,12 @@ public class TimeAutonomous extends LinearOpMode {
                     sleep(250);
                     shootRings(3);
                     intakeOff();
-                    moveStraight(12, 0.75);
+                    moveStraight(42, 0.75);
+                    strafe(36, 0.5);
+                    wobble("release");
+                    moveStraight(6, 0.5);
+                    strafe(24, 0.75);
+                    moveStraight(40, -0.75);
 
                     /*
                     strafe(20, 0.75);
@@ -301,7 +312,10 @@ public class TimeAutonomous extends LinearOpMode {
                     shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     moveStraight(32, 0.5);
                     strafe(6, 0.75);
-                    shootRings(3);
+                    shootRings(2);
+                    moveStraight(4, 1);
+                    moveStraight(4, -1);
+                    shootRings(1);
                     intakeOff();
                     moveStraight(12, 0.75);
 
@@ -485,28 +499,26 @@ public class TimeAutonomous extends LinearOpMode {
      * @param numberOfRings The number of rings to shoot
      */
     public void shootRings(int numberOfRings) {
-        while (ringPusherIteration <= (2 * numberOfRings)) {
-            switch (ringPusherIteration % 2) {
+        while (ringPusherIteration <= (3 * numberOfRings)) {
+            switch (ringPusherIteration % 3) {
                 case 0:
-                    shooterCooldown = cooldowns[1];
+                    shooterCooldown = cooldowns[2];
                     break;
 
                 case 1:
                     shooterCooldown = cooldowns[0];
                     break;
+
+                case 2:
+                    shooterCooldown = cooldowns[1];
+                    break;
             }
 
-            telemetry.addData("ringPusherIteration", ringPusherIteration);
-            telemetry.update();
             currentArrayIndex++;
             if (currentArrayIndex >= ringPusherPositions.length) {
                 currentArrayIndex = 0;
             }
-            telemetry.addLine("Running!");
-            telemetry.update();
             ringPusher.setPosition(ringPusherPositions[currentArrayIndex]);
-            telemetry.addLine("Still Running!");
-            telemetry.update();
             ringPusherTimer.reset();
             ringPusherIteration++;
 
@@ -521,7 +533,7 @@ public class TimeAutonomous extends LinearOpMode {
      * Grabs the wobble goal
      */
     public void grabWobble() {
-        wobbleGrabber.setPosition(0);
+        wobbleGrabber.setPosition(0.7);
         sleep(300);
     }
 
@@ -529,7 +541,7 @@ public class TimeAutonomous extends LinearOpMode {
      * Releases the wobble goal
      */
     public void releaseWobble() {
-        wobbleGrabber.setPosition(0.5);
+        wobbleGrabber.setPosition(0);
         sleep(300);
     }
 
@@ -538,7 +550,7 @@ public class TimeAutonomous extends LinearOpMode {
      * @param time The amount of time to lift
      */
     public void liftWobble(double time) {
-        wobbleLifter.setPower(0.4);
+        wobbleLifter.setPower(-0.5);
         elapsedTime.reset();
         while (opModeIsActive() && elapsedTime.time() < time) {}
         wobbleLifter.setPower(0);
@@ -549,9 +561,12 @@ public class TimeAutonomous extends LinearOpMode {
      * @param time The amount of time to lower
      */
     public void lowerWobble(double time) {
-        wobbleLifter.setPower(-0.4);
+        wobbleLifter.setPower(0.4);
         elapsedTime.reset();
-        while (opModeIsActive() && elapsedTime.time() < time) {}
+        while (opModeIsActive() && elapsedTime.time(TimeUnit.SECONDS) < time) {
+            telemetry.addData("wobble time", elapsedTime.time(TimeUnit.SECONDS));
+            telemetry.update();
+        }
         wobbleLifter.setPower(0);
     }
 
@@ -560,13 +575,14 @@ public class TimeAutonomous extends LinearOpMode {
      * @param action Whether to grab or release
      */
     public void wobble(String action) {
-        lowerWobble(0.5);
+        lowerWobble(1);
         switch (action.toLowerCase()) {
             case "grab": default:
                 grabWobble();
                 break;
 
             case "release":
+                sleep(250);
                 releaseWobble();
                 break;
         }
@@ -628,11 +644,11 @@ public class TimeAutonomous extends LinearOpMode {
 
         /**
          * Takes the RGB frame, converts it to YCrCb, and extracts the Cb channel to the "Cb" variable
-         * @param input the RGB frame that the camera detects
+         * @param frame the RGB frame that the camera detects
          */
-        void inputToCb(Mat input)
+        void frameToCbChannel(Mat frame)
         {
-            Imgproc.cvtColor(input, YCrCb, Imgproc.COLOR_RGB2YCrCb);
+            Imgproc.cvtColor(frame, YCrCb, Imgproc.COLOR_RGB2YCrCb);
             Core.extractChannel(YCrCb, Cb, 1);
         }
 
@@ -643,7 +659,7 @@ public class TimeAutonomous extends LinearOpMode {
         @Override
         public void init(Mat firstFrame)
         {
-            inputToCb(firstFrame);
+            frameToCbChannel(firstFrame);
 
             RegionCb = Cb.submat(new Rect(RegionTopLeft, RegionBottomRight));
         }
@@ -657,11 +673,11 @@ public class TimeAutonomous extends LinearOpMode {
         @Override
         public Mat processFrame(Mat input)
         {
-            inputToCb(input);
+            frameToCbChannel(input);
 
             average = (int) Core.mean(RegionCb).val[0];
 
-            // Set initial ring position and zone
+            // Set initial ring position
             position = RingPosition.ZERO;
 
             // Set position

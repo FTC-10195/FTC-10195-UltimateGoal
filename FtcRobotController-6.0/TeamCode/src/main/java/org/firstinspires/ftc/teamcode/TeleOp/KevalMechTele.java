@@ -44,13 +44,13 @@ public class KevalMechTele extends OpMode {
     public static double powerShotPower = 0.37;
     public static double pushServoPosition = 0.3;
     public static double setLiftPower = 0;
-    public static double wobbleLiftPower = 0.6;
+    public static double wobbleLiftPower = 0.5;
     public static double wobbleGrabPosition = 0;
     public static double wobbleReleasePosition = 0.7;
     public static double wobbleGrabberPosition = wobbleReleasePosition;
     public static int cooldown = 250;
-    public static Double[] ringPusherPositions = {0.1, 0.4};
-    public static Integer[] cooldowns = {750, 750};
+    public static Double[] ringPusherPositions = {0.5, 0.3, 0.6};
+    public static Integer[] cooldowns = {600, 600, 600};
 
     // State variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
@@ -58,13 +58,14 @@ public class KevalMechTele extends OpMode {
     double flPower, frPower, blPower, brPower, topIntakePower, bottomIntakePower, shooterPower;
 
     // ElapsedTime variables
-    ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
     ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
 
     // FTC Dashboard helps edit variables on the fly and graph telemetry values
     FtcDashboard dashboard;
 
     // Shooter/intake variables
+    int shooterWindup = 2500;
     int shooterCooldown = cooldowns[0];
     int ringPusherIteration = 1;
     int currentArrayIndex = 0;
@@ -84,10 +85,6 @@ public class KevalMechTele extends OpMode {
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
             null, null, null, null, null,
             null, null);
-
-    public KevalMechTele(DcMotorEx shooter) {
-        this.shooter = shooter;
-    }
 
     @Override
     public void init() {
@@ -143,7 +140,7 @@ public class KevalMechTele extends OpMode {
         brPower = (normalModePower) * (y + x + rx);
 
         // Normalizes all values back to 1
-        if (abs(flPower) > 1 || abs(blPower) > 1 || abs(frPower) > 1 || abs(brPower) > 1 ) {
+        if (abs(flPower) > 1 || abs(blPower) > 1 || abs(frPower) > 1 || abs(brPower) > 1) {
             // Find the largest power
             double max;
             max = Math.max(abs(flPower), abs(blPower));
@@ -273,18 +270,24 @@ public class KevalMechTele extends OpMode {
                 break;
 
             case SHOOT_RINGS:
+                while(shooterTimer.time(TimeUnit.MILLISECONDS) < shooterCooldown) {}
+
                 // Different shooter cooldowns for each iteration
-                switch (ringPusherIteration % 2) {
+                switch (ringPusherIteration % 3) {
                     case 0:
-                        shooterCooldown = cooldowns[1];
+                        shooterCooldown = cooldowns[2];
                         break;
 
                     case 1:
                         shooterCooldown = cooldowns[0];
                         break;
+
+                    case 2:
+                        shooterCooldown = cooldowns[1];
+                        break;
                 }
 
-                if (ringPusherTimer.time(TimeUnit.MILLISECONDS) >= shooterCooldown && ringPusherIteration <= 6) {
+                if (ringPusherTimer.time(TimeUnit.MILLISECONDS) >= shooterCooldown && ringPusherIteration <= 9) {
                     currentArrayIndex++;
                     if (currentArrayIndex >= ringPusherPositions.length) {
                         currentArrayIndex = 0;
@@ -292,7 +295,7 @@ public class KevalMechTele extends OpMode {
                     pushServoPosition = ringPusherPositions[currentArrayIndex];
                     ringPusherTimer.reset();
                     ringPusherIteration++;
-                } else if (ringPusherIteration > 6) {
+                } else if (ringPusherIteration > 9) {
                     shooterState = ShooterState.STOP_SHOOTER;
                 }
                 break;

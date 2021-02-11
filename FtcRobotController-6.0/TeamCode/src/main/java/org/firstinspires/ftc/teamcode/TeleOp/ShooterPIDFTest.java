@@ -280,7 +280,6 @@ public class ShooterPIDFTest extends OpMode {
             telemetry.addData("setShooterPower", setShooterPower);
             telemetry.addData("currentShooterVelocity", currentShooterVelocity);
             shooter.setVelocity(setShooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
-            sleep(2500);
             packet.put("Set Shooter Velocity", setShooterPower);
             packet.put("Current Shooter Velocity", currentShooterVelocity);
             dashboard.sendTelemetryPacket(packet);

@@ -27,7 +27,7 @@ import static java.lang.Math.abs;
 import static java.lang.Math.sqrt;
 
 @Config
-@TeleOp(name = "KevalMechTeleBackup", group = "b")
+@TeleOp(name = "KevalMechTeleBackup", group = "z")
 public class KevalMechTeleBackup extends OpMode {
 
     public enum ShooterState {
@@ -50,7 +50,7 @@ public class KevalMechTeleBackup extends OpMode {
     public static double wobbleGrabberPosition = wobbleReleasePosition;
     public static int cooldown = 250;
     public static Double[] ringPusherPositions = {0.5, 0.3, 0.6};
-    public static Integer[] cooldowns = {750, 750};
+    public static Integer[] cooldowns = {600, 600, 600};
 
     // State variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
@@ -58,7 +58,6 @@ public class KevalMechTeleBackup extends OpMode {
     double flPower, frPower, blPower, brPower, topIntakePower, bottomIntakePower, shooterPower;
 
     // ElapsedTime variables
-    ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
     ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
 
     // FTC Dashboard helps edit variables on the fly and graph telemetry values
@@ -84,6 +83,10 @@ public class KevalMechTeleBackup extends OpMode {
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
             null, null, null, null, null,
             null, null);
+
+    public KevalMechTeleBackup(DcMotorEx shooter) {
+        this.shooter = shooter;
+    }
 
     @Override
     public void init() {
@@ -262,7 +265,6 @@ public class KevalMechTeleBackup extends OpMode {
                     shooterPower = shooterSetPower;
                     isShooterOnForward = true;
                     pushServoPosition = ringPusherPositions[0];
-                    shooterTimer.reset();
 
                     shooterState = ShooterState.SHOOT_RINGS;
                 }
@@ -280,7 +282,7 @@ public class KevalMechTeleBackup extends OpMode {
                         break;
                 }
 
-                if (ringPusherTimer.time(TimeUnit.MILLISECONDS) >= shooterCooldown && ringPusherIteration <= 6) {
+                if (ringPusherTimer.time(TimeUnit.MILLISECONDS) >= shooterCooldown && ringPusherIteration <= 9) {
                     currentArrayIndex++;
                     if (currentArrayIndex >= ringPusherPositions.length) {
                         currentArrayIndex = 0;
@@ -288,7 +290,7 @@ public class KevalMechTeleBackup extends OpMode {
                     pushServoPosition = ringPusherPositions[currentArrayIndex];
                     ringPusherTimer.reset();
                     ringPusherIteration++;
-                } else if (ringPusherIteration > 6) {
+                } else if (ringPusherIteration > 9) {
                     shooterState = ShooterState.STOP_SHOOTER;
                 }
                 break;
