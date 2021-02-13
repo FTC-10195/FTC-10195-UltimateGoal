@@ -119,6 +119,8 @@ public class TimeAutonomous extends LinearOpMode {
         br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
+        shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
         grabWobble();
     }
 
@@ -212,7 +214,7 @@ public class TimeAutonomous extends LinearOpMode {
      * This function contains the main steps for the robot to follow
      */
     public void runRobot() {
-        // Set movePower negative to move left/down
+        // Set inches negative to move left/down
         if (opModeIsActive() && !isStopRequested()) {
             shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
             sleep(500);
@@ -223,7 +225,8 @@ public class TimeAutonomous extends LinearOpMode {
             shootRings(2);
             moveStraight(4, 1);
             sleep(100);
-            moveStraight(6, -1);
+            moveStraight(-6, 1);
+            sleep(250);
             shootRings(1);
             shooter.setPower(0);
 
@@ -234,13 +237,13 @@ public class TimeAutonomous extends LinearOpMode {
                     sleep(250);
                     strafe(12, 0.25);
                     sleep(250);
-                    strafe(4, -0.25);
+                    strafe(-4, 0.25);
                     moveStraight(12, 0.5);
                     wobble("release");
                     moveStraight(6, 0.5);
-                    strafe(36, -0.75);
+                    strafe(-36, 0.75);
                     sleep(250);
-                    moveStraight(28, -0.75);
+                    moveStraight(-28, 0.75);
 
                     /*
                     moveStraight(44, 0.3);
@@ -258,10 +261,10 @@ public class TimeAutonomous extends LinearOpMode {
 
                 case "B":
                     strafe(24, 0.5);
-                    moveStraight(12, -1);
+                    moveStraight(-12, 1);
                     intakeOn();
-                    moveStraight(24, -0.135);
-                    strafe(28, -0.5);
+                    moveStraight(-24, 0.135);
+                    strafe(-28, 0.5);
                     shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     sleep(250);
                     moveStraight(32, 0.5);
@@ -274,7 +277,7 @@ public class TimeAutonomous extends LinearOpMode {
                     wobble("release");
                     moveStraight(6, 0.5);
                     strafe(24, 0.75);
-                    moveStraight(40, -0.75);
+                    moveStraight(-40, 0.75);
 
                     /*
                     strafe(20, 0.75);
@@ -302,19 +305,19 @@ public class TimeAutonomous extends LinearOpMode {
 
                 case "C":
                     strafe(24, 0.5);
-                    moveStraight(24, -1);
+                    moveStraight(-24, 1);
                     sleep(250);
                     moveStraight(6, 0.5);
                     intakeOn();
                     sleep(500);
-                    moveStraight(34, -0.135);
-                    strafe(28, -0.5);
+                    moveStraight(-34, 0.135);
+                    strafe(-28, 0.5);
                     shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     moveStraight(32, 0.5);
                     strafe(6, 0.75);
                     shootRings(2);
                     moveStraight(4, 1);
-                    moveStraight(4, -1);
+                    moveStraight(-4, 1);
                     shootRings(1);
                     intakeOff();
                     moveStraight(12, 0.75);
@@ -352,14 +355,16 @@ public class TimeAutonomous extends LinearOpMode {
 
     /**
      * This function controls the forward and backward movement of the robot
-     * @param inches The number of inches that the robot moves
-     * @param movePower The power given to the wheels; negative if moving backwards
+     * @param inches The number of inches that the robot moves; negative if moving backward
+     * @param movePower The power given to the wheels
      */
     public void moveStraight(double inches, double movePower) {
+        inches = abs(inches);
         inches *= (defaultPower / abs(movePower)); // normalizes value of "inches" back to value at default power
         double time = inches / inchesInOneSecond; // time = distance / speed
 
-        telemetry.addData("Time to Run", time);
+        int directionalCoefficient = (inches >= 0) ? 1 : -1;
+        movePower *= directionalCoefficient;
 
         fl.setPower(movePower);
         fr.setPower(movePower);
@@ -381,12 +386,16 @@ public class TimeAutonomous extends LinearOpMode {
 
     /**
      * This function controls the strafing movement of the robot
-     * @param inches The amount of time (in seconds) that the robot runs
-     * @param movePower The power given to the wheels; negative if moving left and positive if moving right
+     * @param inches The amount of time (in seconds) that the robot runs; negative if moving left
+     * @param movePower The power given to the wheels
      */
     public void strafe(double inches, double movePower) {
+        inches = abs(inches);
         inches *= (defaultPower / abs(movePower));
         double time = inches / inchesInOneSecond;
+
+        int directionalCoefficient = (inches >= 0) ? 1 : -1;
+        movePower *= directionalCoefficient;
 
         fl.setPower(movePower);
         fr.setPower(-movePower);

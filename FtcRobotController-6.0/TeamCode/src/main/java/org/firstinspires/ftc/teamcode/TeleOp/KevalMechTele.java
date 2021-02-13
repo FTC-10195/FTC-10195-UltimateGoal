@@ -117,6 +117,8 @@ public class KevalMechTele extends OpMode {
         br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         wobbleLifter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+
+        shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
     @Override
