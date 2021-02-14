@@ -50,7 +50,7 @@ public class ServoTest extends OpMode {
 
         telemetry.addData("Servo 0", servoPositions[0]);
         telemetry.addData("Servo 1", servoPositions[1]);
-        telemetry.addData("Selected Servo", selectedServo);
+        telemetry.addData("Selected Servo Port #", selectedServo.getPortNumber());
         telemetry.update();
     }
 }

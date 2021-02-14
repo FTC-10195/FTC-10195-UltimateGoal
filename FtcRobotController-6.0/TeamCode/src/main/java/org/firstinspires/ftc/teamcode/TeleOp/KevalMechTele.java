@@ -75,7 +75,7 @@ public class KevalMechTele extends OpMode {
     boolean isIntakeOnBackward = false;
     boolean powerShot = false;
     long intakeLastPressed = 0;
-    long shooterLastPressed = 0;
+    static long shooterLastPressed = 0;
 
     long wobbleLastPressed = 0;
 
