@@ -4,7 +4,6 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -39,7 +38,7 @@ public class ShooterPIDFTuner extends OpMode {
             null, null, null, null, null,
             null, null);
 
-    public static double setShooterPower;
+    public static double setShooterVelocity;
     public static double currentShooterVelocity;
 
     public static double P = 1;
@@ -65,6 +64,53 @@ public class ShooterPIDFTuner extends OpMode {
         setShooterVelocity();
     }
 
+    public void setShooterVelocity() {
+
+        while (isShooterOnForward) {
+            double adjustedShooterTime = shooterRotation.time(TimeUnit.SECONDS) % 8;
+            if (adjustedShooterTime > 6) {
+                setShooterVelocity = powerToVelocity(
+                        0.25,
+                        robot.SHOOTER_TICKS_PER_ROTATION,
+                        robot.SHOOTER_MAX_RPM
+                );
+            } else if (adjustedShooterTime > 4) {
+                setShooterVelocity = powerToVelocity(
+                        -0.25 * (adjustedShooterTime - 4) + 0.75,
+                        robot.SHOOTER_TICKS_PER_ROTATION,
+                        robot.SHOOTER_MAX_RPM
+                );
+            } else if (adjustedShooterTime > 2) {
+                setShooterVelocity = powerToVelocity(
+                        0.75,
+                        robot.SHOOTER_TICKS_PER_ROTATION,
+                        robot.SHOOTER_MAX_RPM
+                );
+            } else {
+                setShooterVelocity = powerToVelocity(
+                        0.25 * (adjustedShooterTime) + 0.25,
+                        robot.SHOOTER_TICKS_PER_ROTATION,
+                        robot.SHOOTER_MAX_RPM
+                );
+            }
+
+            currentShooterVelocity = calculateShooterVelocity();
+            shooter.setVelocity(setShooterVelocity);
+
+            packet.put("Set Shooter Velocity", setShooterVelocity);
+            packet.put("Current Shooter Velocity", currentShooterVelocity);
+            packet.put("Error", currentShooterVelocity - setShooterVelocity);
+
+            dashboard.sendTelemetryPacket(packet);
+        }
+
+        shooterRotation.reset();
+    }
+
+    public double powerToVelocity(double power, double ticksPerRotation, double maxRPM) {
+        return (power * (ticksPerRotation * (maxRPM / 60)));
+    }
+
     public double calculateShooterVelocity() {
         currentTime = shooterPIDFTimer.time(TimeUnit.SECONDS);
         deltaTime = currentTime - previousTime;
@@ -76,29 +122,5 @@ public class ShooterPIDFTuner extends OpMode {
 
         velocity = deltaTicks / deltaTime;
         return velocity;
-    }
-
-    public void setShooterVelocity() {
-        while (isShooterOnForward) {
-            double adjustedShooterTime = shooterRotation.time(TimeUnit.SECONDS) % 8;
-            if (adjustedShooterTime > 6) {
-                setShooterPower = 0.25;
-            } else if (adjustedShooterTime > 4) {
-                setShooterPower = -0.25 * (adjustedShooterTime - 4) + 0.75;
-            } else if (adjustedShooterTime > 2) {
-                setShooterPower = 0.75;
-            } else {
-                setShooterPower = 0.25 * (adjustedShooterTime) + 0.25;
-            }
-
-            currentShooterVelocity = calculateShooterVelocity();
-            shooter.setVelocity(setShooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
-            packet.put("Set Shooter Velocity", setShooterPower);
-            packet.put("Current Shooter Velocity", currentShooterVelocity);
-
-            dashboard.sendTelemetryPacket(packet);
-        }
-
-        shooterRotation.reset();
     }
 }
