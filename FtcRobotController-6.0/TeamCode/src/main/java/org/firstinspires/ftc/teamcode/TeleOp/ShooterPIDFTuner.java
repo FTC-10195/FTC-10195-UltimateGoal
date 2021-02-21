@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -14,12 +15,13 @@ import java.util.concurrent.TimeUnit;
 import static org.firstinspires.ftc.teamcode.TeleOp.KevalMechTele.cooldown;
 import static org.firstinspires.ftc.teamcode.TeleOp.KevalMechTele.shooterLastPressed;
 
+@Config
 @TeleOp(name = "ShooterPIDFTuner", group = "a")
 public class ShooterPIDFTuner extends OpMode {
     DcMotorEx shooter;
 
-    FtcDashboard dashboard;
-    TelemetryPacket packet;
+    FtcDashboard dashboard = FtcDashboard.getInstance();
+    TelemetryPacket packet = new TelemetryPacket();
 
     ElapsedTime shooterPIDFTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
     double currentTime = 0;
@@ -32,7 +34,8 @@ public class ShooterPIDFTuner extends OpMode {
 
     boolean isShooterOnForward = false;
 
-    static ElapsedTime shooterRotation = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    ElapsedTime shooterRotation = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    ElapsedTime waitBetweenLoops = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
 
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
             null, null, null, null, null,
@@ -41,10 +44,11 @@ public class ShooterPIDFTuner extends OpMode {
     public static double setShooterVelocity;
     public static double currentShooterVelocity;
 
+    // The PIDF values to tune via FTC Dashboard
     public static double P = 1;
     public static double I = 0;
     public static double D = 0;
-    public static double F = 0;
+    public static double F = 10;
 
     @Override
     public void init() {
@@ -62,11 +66,28 @@ public class ShooterPIDFTuner extends OpMode {
         shooter.setVelocityPIDFCoefficients(P, I, D, F);
 
         setShooterVelocity();
+
+        // Sends the telemetry data to FTC Dashboard for graphing
+        packet.put("Set Shooter Velocity", setShooterVelocity);
+        packet.put("Current Shooter Velocity", currentShooterVelocity);
+        packet.put("Error", currentShooterVelocity - setShooterVelocity);
+        packet.put("isShooterOnForward", isShooterOnForward);
+        dashboard.sendTelemetryPacket(packet);
+
+        waitBetweenLoops.reset();
+        while (waitBetweenLoops.time(TimeUnit.MILLISECONDS) <  250) {}
     }
 
+    /**
+     * Sets the shooter velocity and sends telemetry data for graphing to FTC Dashboard
+     */
     public void setShooterVelocity() {
 
-        while (isShooterOnForward) {
+        if (isShooterOnForward) {
+            /*
+            The trapezoidal motion profile; graph in Programming Notebook or at below link
+            https://www.desmos.com/calculator/owtmixvn4t
+             */
             double adjustedShooterTime = shooterRotation.time(TimeUnit.SECONDS) % 8;
             if (adjustedShooterTime > 6) {
                 setShooterVelocity = powerToVelocity(
@@ -96,29 +117,32 @@ public class ShooterPIDFTuner extends OpMode {
 
             currentShooterVelocity = calculateShooterVelocity();
             shooter.setVelocity(setShooterVelocity);
-
-            packet.put("Set Shooter Velocity", setShooterVelocity);
-            packet.put("Current Shooter Velocity", currentShooterVelocity);
-            packet.put("Error", currentShooterVelocity - setShooterVelocity);
-
-            dashboard.sendTelemetryPacket(packet);
         }
-
-        shooterRotation.reset();
     }
 
+    /**
+     * A simple conversion between motor power and velocity
+     * @param power The power to convert to velocity
+     * @param ticksPerRotation The ticks per rotation of the motor
+     * @param maxRPM The max RPM of the motor
+     * @return The converted velocity
+     */
     public double powerToVelocity(double power, double ticksPerRotation, double maxRPM) {
         return (power * (ticksPerRotation * (maxRPM / 60)));
     }
 
+    /**
+     * Calculates the current shooter velocity
+     * @return Current shooter velocity
+     */
     public double calculateShooterVelocity() {
-        currentTime = shooterPIDFTimer.time(TimeUnit.SECONDS);
-        deltaTime = currentTime - previousTime;
-        previousTime = currentTime;
-
         currentTicks = shooter.getCurrentPosition();
         deltaTicks = currentTicks - previousTicks;
         previousTicks = currentTicks;
+
+        currentTime = shooterPIDFTimer.time(TimeUnit.SECONDS);
+        deltaTime = currentTime - previousTime;
+        previousTime = currentTime;
 
         velocity = deltaTicks / deltaTime;
         return velocity;

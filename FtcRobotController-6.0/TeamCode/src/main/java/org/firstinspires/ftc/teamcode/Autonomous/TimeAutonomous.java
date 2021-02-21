@@ -41,9 +41,9 @@ public class TimeAutonomous extends LinearOpMode {
     // Configuration variables
     public static double inchesInOneSecond = 26.75;
     public static double defaultPower = 0.5;
-    public static Integer[] cooldowns = {600, 600, 600};
-    Double[] ringPusherPositions = {0.5, 0.3, 0.6};
-    public static double shooterPower = 0.69;
+    public static Integer[] cooldowns = {300, 300, 300};
+    public static Double[] ringPusherPositions = {0.5, 0.3, 0.7};
+    public static double shooterPower = 0.95;
 
     // Motor variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
@@ -122,6 +122,8 @@ public class TimeAutonomous extends LinearOpMode {
         shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         grabWobble();
+
+        shooter.setVelocityPIDFCoefficients(1.13, 0.11, 0, 11.25);
     }
 
     /**
@@ -190,7 +192,7 @@ public class TimeAutonomous extends LinearOpMode {
             dashboardTelemetry.addData("Rings", pipeline.position);
             dashboardTelemetry.addData("Zone", zone);
             dashboardTelemetry.update();
-        } while (!opModeIsActive());
+        } while (!opModeIsActive() && !isStopRequested());
     }
 
     /**
@@ -218,17 +220,12 @@ public class TimeAutonomous extends LinearOpMode {
         if (opModeIsActive() && !isStopRequested()) {
             shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
             sleep(500);
-            moveStraight(52, 0.75);
-            sleep(500);
-            strafe(6, 0.75);
-            sleep(500);
-            shootRings(2);
-            moveStraight(4, 1);
-            sleep(100);
-            moveStraight(-6, 1);
+            moveStraight(50, 0.75);
             sleep(250);
-            shootRings(1);
-            shooter.setPower(0);
+            strafe(8, 0.5);
+            sleep(250);
+            shootRings(4);
+            shooter.setVelocity(0);
 
             switch (zone) {
                 case "A": default:
@@ -241,9 +238,9 @@ public class TimeAutonomous extends LinearOpMode {
                     moveStraight(12, 0.5);
                     wobble("release");
                     moveStraight(6, 0.5);
-                    strafe(-36, 0.75);
+                    strafe(36, -0.75);
                     sleep(250);
-                    moveStraight(-28, 0.75);
+                    moveStraight(32, -0.75);
 
                     /*
                     moveStraight(44, 0.3);
@@ -260,14 +257,16 @@ public class TimeAutonomous extends LinearOpMode {
                     break;
 
                 case "B":
-                    strafe(24, 0.5);
-                    moveStraight(-12, 1);
+                    strafe(18, 0.5);
+                    moveStraight(12, -1);
                     intakeOn();
-                    moveStraight(-24, 0.135);
-                    strafe(-28, 0.5);
+                    moveStraight(24, -0.135);
+                    sleep(250);
+                    strafe(28, -0.5);
                     shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     sleep(250);
                     moveStraight(32, 0.5);
+                    sleep(250);
                     strafe(6, 0.75);
                     sleep(250);
                     shootRings(3);
@@ -277,7 +276,7 @@ public class TimeAutonomous extends LinearOpMode {
                     wobble("release");
                     moveStraight(6, 0.5);
                     strafe(24, 0.75);
-                    moveStraight(-40, 0.75);
+                    moveStraight(40, -0.75);
 
                     /*
                     strafe(20, 0.75);
@@ -304,23 +303,22 @@ public class TimeAutonomous extends LinearOpMode {
                     break;
 
                 case "C":
-                    strafe(24, 0.5);
-                    moveStraight(-24, 1);
+                    strafe(20, 0.5);
+                    moveStraight(28, -1);
                     sleep(250);
-                    moveStraight(6, 0.5);
+                    moveStraight(10, 0.5);
                     intakeOn();
                     sleep(500);
-                    moveStraight(-34, 0.135);
-                    strafe(-28, 0.5);
+                    moveStraight(28, -0.15);
+                    sleep(250);
+                    strafe(28, -0.5);
                     shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     moveStraight(32, 0.5);
-                    strafe(6, 0.75);
-                    shootRings(2);
-                    moveStraight(4, 1);
-                    moveStraight(-4, 1);
-                    shootRings(1);
+                    sleep(250);
+                    strafe(10, 0.75);
+                    shootRings(4);
                     intakeOff();
-                    moveStraight(12, 0.75);
+                    moveStraight(18, 0.75);
 
                     /*
                     strafe(60, 0.75);
@@ -432,16 +430,10 @@ public class TimeAutonomous extends LinearOpMode {
         blPower = motorPower;
         brPower = -motorPower;
 
-        telemetry.addLine("before set powers");
-        telemetry.update();
-
         fl.setPower(flPower);
         fr.setPower(frPower);
         bl.setPower(blPower);
         br.setPower(brPower);
-
-        telemetry.addLine("before TurnUntilAngleReached");
-        telemetry.update();
 
         TurnUntilAngleReached(angle);
     }
@@ -493,9 +485,9 @@ public class TimeAutonomous extends LinearOpMode {
         double changeInAngle = angles.firstAngle - lastAngles.firstAngle;
         currentAngle += changeInAngle;
 
-        if (currentAngle > 360){
+        if (currentAngle > 180){
             currentAngle -= 360;
-        } else if(currentAngle < -360){
+        } else if(currentAngle < -180){
             currentAngle += 360;
         }
 
@@ -542,7 +534,7 @@ public class TimeAutonomous extends LinearOpMode {
      * Grabs the wobble goal
      */
     public void grabWobble() {
-        wobbleGrabber.setPosition(0.7);
+        wobbleGrabber.setPosition(0);
         sleep(300);
     }
 
@@ -550,7 +542,7 @@ public class TimeAutonomous extends LinearOpMode {
      * Releases the wobble goal
      */
     public void releaseWobble() {
-        wobbleGrabber.setPosition(0);
+        wobbleGrabber.setPosition(0.7);
         sleep(300);
     }
 
@@ -645,7 +637,7 @@ public class TimeAutonomous extends LinearOpMode {
 
         Mat RegionCb;
         Mat YCrCb = new Mat();
-        Mat Cb = new Mat();
+        Mat CbChannel = new Mat();
         int average;
 
         // Volatile because it's accessed by the OpMode thread without synchronization
@@ -653,12 +645,12 @@ public class TimeAutonomous extends LinearOpMode {
 
         /**
          * Takes the RGB frame, converts it to YCrCb, and extracts the Cb channel to the "Cb" variable
-         * @param frame the RGB frame that the camera detects
+         * @param frame The RGB frame that the camera detects
          */
         void frameToCbChannel(Mat frame)
         {
             Imgproc.cvtColor(frame, YCrCb, Imgproc.COLOR_RGB2YCrCb);
-            Core.extractChannel(YCrCb, Cb, 1);
+            Core.extractChannel(YCrCb, CbChannel, 1);
         }
 
         /**
@@ -670,7 +662,7 @@ public class TimeAutonomous extends LinearOpMode {
         {
             frameToCbChannel(firstFrame);
 
-            RegionCb = Cb.submat(new Rect(RegionTopLeft, RegionBottomRight));
+            RegionCb = CbChannel.submat(new Rect(RegionTopLeft, RegionBottomRight));
         }
 
         /**
@@ -703,7 +695,7 @@ public class TimeAutonomous extends LinearOpMode {
                     RegionTopLeft, // First point which defines the rectangle
                     RegionBottomRight, // Second point which defines the rectangle
                     RED, // The colour the rectangle is drawn in
-                    2); // Negative thickness means solid fill
+                    2); // Thickness of the rectangle; negative for complete fill
 
             return input;
         }
