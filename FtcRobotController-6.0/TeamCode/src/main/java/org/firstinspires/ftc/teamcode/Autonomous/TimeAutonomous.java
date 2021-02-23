@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -43,7 +44,7 @@ public class TimeAutonomous extends LinearOpMode {
     public static double defaultPower = 0.5;
     public static Integer[] cooldowns = {300, 300, 300};
     public static Double[] ringPusherPositions = {0.5, 0.3, 0.7};
-    public static double shooterPower = 0.95;
+    public static double shooterPower = 1;
 
     // Motor variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
@@ -119,6 +120,9 @@ public class TimeAutonomous extends LinearOpMode {
         br.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
+        MotorConfigurationType shooterConfiguration = shooter.getMotorType().clone();
+        shooterConfiguration.setAchieveableMaxRPMFraction(0.95);
+        shooter.setMotorType(shooterConfiguration);
         shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         grabWobble();
@@ -219,13 +223,13 @@ public class TimeAutonomous extends LinearOpMode {
         // Set inches negative to move left/down
         if (opModeIsActive() && !isStopRequested()) {
             shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
-            sleep(500);
-            moveStraight(50, 0.75);
+            moveStraight(50, 0.5);
             sleep(250);
             strafe(8, 0.5);
             sleep(250);
             shootRings(4);
             shooter.setVelocity(0);
+            sleep(250);
 
             switch (zone) {
                 case "A": default:
@@ -238,6 +242,7 @@ public class TimeAutonomous extends LinearOpMode {
                     moveStraight(12, 0.5);
                     wobble("release");
                     moveStraight(6, 0.5);
+                    sleep(250);
                     strafe(36, -0.75);
                     sleep(250);
                     moveStraight(32, -0.75);
@@ -275,7 +280,7 @@ public class TimeAutonomous extends LinearOpMode {
                     strafe(36, 0.5);
                     wobble("release");
                     moveStraight(6, 0.5);
-                    strafe(24, 0.75);
+                    strafe(24, -0.75);
                     moveStraight(40, -0.75);
 
                     /*
@@ -308,17 +313,18 @@ public class TimeAutonomous extends LinearOpMode {
                     sleep(250);
                     moveStraight(10, 0.5);
                     intakeOn();
-                    sleep(500);
+                    sleep(250);
                     moveStraight(28, -0.15);
                     sleep(250);
                     strafe(28, -0.5);
                     shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     moveStraight(32, 0.5);
                     sleep(250);
-                    strafe(10, 0.75);
+                    strafe(10, 0.5);
+                    sleep(250);
                     shootRings(4);
                     intakeOff();
-                    moveStraight(18, 0.75);
+                    moveStraight(18, 0.5);
 
                     /*
                     strafe(60, 0.75);

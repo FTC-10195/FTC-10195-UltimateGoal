@@ -13,6 +13,7 @@ package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -37,30 +38,24 @@ public class KevalMechTele extends OpMode {
     }
 
     // Configuration parameters
-    public static double slowModePower = 0.35;
-    public static double normalModePower = 1;
+    public static double slowModePower = 0.25;
+    public static double normalModePower = 0.8;
     public static double buttonIsPressedThreshold = 0.10;
-    public static double shooterSetPower = 0.9;
-    public static double powerShotPower = 0.34;
-    public static double pushServoPosition = 0.3;
+    public static double shooterSetPower = 0.8;
+    public static double powerShotPower = 0.6;
+    public static int buttonPressCooldown = 250;
+    public static Double[] ringPusherPositions = {0.75, 0.5, 0.3};
+    public static Integer[] cooldowns = {300, 300, 400};
+    public static double pushServoPosition = ringPusherPositions[0];
     public static double setLiftPower = 0;
     public static double wobbleLiftPower = 0.5;
     public static double wobbleGrabPosition = 0;
     public static double wobbleReleasePosition = 0.7;
     public static double wobbleGrabberPosition = wobbleReleasePosition;
-    /*
-    public static double ringBlockerDown = 0;
-    public static double ringBlockerUp = 0;
-    public static double ringBlockerPosition = ringBlockerDown;
-
-     */
-    public static int cooldown = 250;
-    public static Double[] ringPusherPositions = {0.75, 0.5, 0.3};
-    public static Integer[] cooldowns = {300, 300, 400};
 
     // State variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
-    Servo ringPusher, wobbleGrabber, ringBlocker;
+    Servo ringPusher, wobbleGrabber;
     double flPower, frPower, blPower, brPower, topIntakePower, bottomIntakePower, shooterPower;
 
     // ElapsedTime variables
@@ -68,7 +63,8 @@ public class KevalMechTele extends OpMode {
     ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
 
     // FTC Dashboard helps edit variables on the fly and graph telemetry values
-    FtcDashboard dashboard;
+    FtcDashboard dashboard = FtcDashboard.getInstance();
+    TelemetryPacket packet = new TelemetryPacket();
 
     // Shooter/intake variables
     int shooterWindup = 2000;
@@ -92,10 +88,12 @@ public class KevalMechTele extends OpMode {
             null, null, null, null, null,
             null, null);
 
+    int currentTicks, previousTicks, deltaTicks;
+    double currentTime, previousTime, deltaTime, velocity;
+    ElapsedTime shooterPIDFTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+
     @Override
     public void init() {
-        dashboard = FtcDashboard.getInstance();
-
         // Set up the motors and servos
         fl = hardwareMap.get(DcMotorEx.class, "fl");
         fr = hardwareMap.get(DcMotorEx.class, "fr");
@@ -107,7 +105,6 @@ public class KevalMechTele extends OpMode {
         wobbleLifter = hardwareMap.get(DcMotorEx.class, "lift");
         ringPusher = hardwareMap.get(Servo.class, "push");
         wobbleGrabber = hardwareMap.get(Servo.class, "grab");
-        ringBlocker = hardwareMap.get(Servo.class, "block");
 
         // TODO: Find which motors to reverse
         fl.setDirection(DcMotorEx.Direction.REVERSE);
@@ -203,26 +200,26 @@ public class KevalMechTele extends OpMode {
         // region Gamepad 2
 
         // Button to toggle between power shots and regular shooting
-        if (gamepad2.a && System.currentTimeMillis() - shooterLastPressed > cooldown) {
+        if (gamepad2.a && System.currentTimeMillis() - shooterLastPressed > buttonPressCooldown) {
             powerShot = !powerShot;
         }
 
         // Toggle shooter and intake
-        if (gamepad2.dpad_up && System.currentTimeMillis() - shooterLastPressed > cooldown)  {
+        if (gamepad2.dpad_up && System.currentTimeMillis() - shooterLastPressed > buttonPressCooldown)  {
             shooterLastPressed = System.currentTimeMillis();
             isShooterOnForward = !isShooterOnForward;
             isShooterOnBackward = false;
-        } else if (gamepad2.dpad_down && System.currentTimeMillis() - shooterLastPressed > cooldown) {
+        } else if (gamepad2.dpad_down && System.currentTimeMillis() - shooterLastPressed > buttonPressCooldown) {
             shooterLastPressed = System.currentTimeMillis();
             isShooterOnBackward = !isShooterOnBackward;
             isShooterOnForward = false;
         }
 
-        if (gamepad2.dpad_right && System.currentTimeMillis() - intakeLastPressed > cooldown) {
+        if (gamepad2.dpad_right && System.currentTimeMillis() - intakeLastPressed > buttonPressCooldown) {
             intakeLastPressed = System.currentTimeMillis();
             isIntakeOnForward = !isIntakeOnForward;
             isIntakeOnBackward = false;
-        } else if (gamepad2.dpad_left && System.currentTimeMillis() - intakeLastPressed > cooldown) {
+        } else if (gamepad2.dpad_left && System.currentTimeMillis() - intakeLastPressed > buttonPressCooldown) {
             intakeLastPressed = System.currentTimeMillis();
             isIntakeOnBackward = !isIntakeOnBackward;
             isIntakeOnForward = false;
@@ -252,7 +249,7 @@ public class KevalMechTele extends OpMode {
         }
 
         // Iterates through array for the ring pusher servo
-        if (gamepad2.right_bumper && System.currentTimeMillis() - wobbleLastPressed > cooldown) {
+        if (gamepad2.right_bumper && System.currentTimeMillis() - wobbleLastPressed > buttonPressCooldown) {
             wobbleLastPressed = System.currentTimeMillis();
             currentArrayIndex++;
             if(currentArrayIndex >= ringPusherPositions.length) {
@@ -260,7 +257,7 @@ public class KevalMechTele extends OpMode {
             }
             pushServoPosition = ringPusherPositions[currentArrayIndex];
         }
-        else if (gamepad2.left_bumper && System.currentTimeMillis() - wobbleLastPressed > cooldown) {
+        else if (gamepad2.left_bumper && System.currentTimeMillis() - wobbleLastPressed > buttonPressCooldown) {
             wobbleLastPressed = System.currentTimeMillis();
             currentArrayIndex--;
             if(currentArrayIndex < 0) {
@@ -269,8 +266,6 @@ public class KevalMechTele extends OpMode {
             pushServoPosition = ringPusherPositions[currentArrayIndex];
         }
 
-        boolean startShooterCompleted = false;
-
         // Automatically shoots all three rings
         switch (shooterState) {
             case START_SHOOTER:
@@ -278,9 +273,7 @@ public class KevalMechTele extends OpMode {
                     shooterPower = shooterSetPower;
                     isShooterOnForward = true;
                     pushServoPosition = ringPusherPositions[0];
-                    //ringBlockerPosition = ringBlockerUp;
                     shooterTimer.reset();
-                    startShooterCompleted = true;
                     shooterState = ShooterState.SHOOT_RINGS;
                 }
 
@@ -324,8 +317,6 @@ public class KevalMechTele extends OpMode {
                 ringPusherIteration = 1;
                 pushServoPosition = ringPusherPositions[0];
                 currentArrayIndex = 0;
-                //ringBlockerPosition = ringBlockerDown;
-                startShooterCompleted = false;
                 shooterState = ShooterState.START_SHOOTER;
                 break;
         }
@@ -347,7 +338,6 @@ public class KevalMechTele extends OpMode {
         wobbleLifter.setPower(setLiftPower);
 
         shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
-        telemetry.addData("shooter velocity", shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
 
         ringPusher.setPosition(pushServoPosition);
         wobbleGrabber.setPosition(wobbleGrabberPosition);
@@ -359,5 +349,22 @@ public class KevalMechTele extends OpMode {
         telemetry.addData("Power Shot?", powerShot);
         telemetry.addData("Wobble Grabber Position", wobbleGrabberPosition);
         telemetry.update();
+
+        packet.put("Current Shooter Velocity", calculateShooterVelocity());
+        packet.put("Set Shooter Velocity", shooter.getVelocity());
+        dashboard.sendTelemetryPacket(packet);
+    }
+
+    public double calculateShooterVelocity() {
+        currentTicks = shooter.getCurrentPosition();
+        deltaTicks = currentTicks - previousTicks;
+        previousTicks = currentTicks;
+
+        currentTime = shooterPIDFTimer.time(TimeUnit.MILLISECONDS);
+        deltaTime = (currentTime - previousTime) / 1000.0;
+        previousTime = currentTime;
+
+        velocity = deltaTicks / deltaTime;
+        return velocity;
     }
 }

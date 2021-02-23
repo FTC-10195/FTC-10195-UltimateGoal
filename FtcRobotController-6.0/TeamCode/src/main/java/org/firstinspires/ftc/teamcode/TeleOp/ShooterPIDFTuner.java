@@ -12,7 +12,7 @@ import org.firstinspires.ftc.teamcode.Autonomous.RobotControlMethods;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.firstinspires.ftc.teamcode.TeleOp.KevalMechTele.cooldown;
+import static org.firstinspires.ftc.teamcode.TeleOp.KevalMechTele.buttonPressCooldown;
 import static org.firstinspires.ftc.teamcode.TeleOp.KevalMechTele.shooterLastPressed;
 
 @Config
@@ -23,7 +23,7 @@ public class ShooterPIDFTuner extends OpMode {
     FtcDashboard dashboard = FtcDashboard.getInstance();
     TelemetryPacket packet = new TelemetryPacket();
 
-    ElapsedTime shooterPIDFTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    ElapsedTime shooterPIDFTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
     double currentTime = 0;
     double previousTime = 0;
     double deltaTime = 0;
@@ -34,7 +34,7 @@ public class ShooterPIDFTuner extends OpMode {
 
     boolean isShooterOnForward = false;
 
-    ElapsedTime shooterRotation = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    ElapsedTime shooterRotation = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
     ElapsedTime waitBetweenLoops = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
 
     RobotControlMethods robot = new RobotControlMethods(null, null, null, null,
@@ -45,8 +45,8 @@ public class ShooterPIDFTuner extends OpMode {
     public static double currentShooterVelocity;
 
     // The PIDF values to tune via FTC Dashboard
-    public static double P = 1;
-    public static double I = 0;
+    public static double P = 50;
+    public static double I = 1.5;
     public static double D = 0;
     public static double F = 10;
 
@@ -58,7 +58,7 @@ public class ShooterPIDFTuner extends OpMode {
 
     @Override
     public void loop() {
-        if (gamepad2.dpad_up && System.currentTimeMillis() - shooterLastPressed > cooldown) {
+        if (gamepad2.dpad_up && System.currentTimeMillis() - shooterLastPressed > buttonPressCooldown) {
             shooterLastPressed = System.currentTimeMillis();
             isShooterOnForward = !isShooterOnForward;
         }
@@ -75,7 +75,7 @@ public class ShooterPIDFTuner extends OpMode {
         dashboard.sendTelemetryPacket(packet);
 
         waitBetweenLoops.reset();
-        while (waitBetweenLoops.time(TimeUnit.MILLISECONDS) <  250) {}
+        while (waitBetweenLoops.time(TimeUnit.MILLISECONDS) <  50) {}
     }
 
     /**
@@ -88,7 +88,7 @@ public class ShooterPIDFTuner extends OpMode {
             The trapezoidal motion profile; graph in Programming Notebook or at below link
             https://www.desmos.com/calculator/owtmixvn4t
              */
-            double adjustedShooterTime = shooterRotation.time(TimeUnit.SECONDS) % 8;
+            double adjustedShooterTime = (shooterRotation.time(TimeUnit.MILLISECONDS) / 1000.0) % 8;
             if (adjustedShooterTime > 6) {
                 setShooterVelocity = powerToVelocity(
                         0.25,
@@ -140,8 +140,8 @@ public class ShooterPIDFTuner extends OpMode {
         deltaTicks = currentTicks - previousTicks;
         previousTicks = currentTicks;
 
-        currentTime = shooterPIDFTimer.time(TimeUnit.SECONDS);
-        deltaTime = currentTime - previousTime;
+        currentTime = shooterPIDFTimer.time(TimeUnit.MILLISECONDS);
+        deltaTime = (currentTime - previousTime) / 1000.0;
         previousTime = currentTime;
 
         velocity = deltaTicks / deltaTime;
