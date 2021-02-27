@@ -14,6 +14,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -42,9 +43,13 @@ public class TimeAutonomous extends LinearOpMode {
     // Configuration variables
     public static double inchesInOneSecond = 26.75;
     public static double defaultPower = 0.5;
-    public static Integer[] cooldowns = {300, 300, 300};
-    public static Double[] ringPusherPositions = {0.5, 0.3, 0.7};
-    public static double shooterPower = 1;
+    public static Double[] ringPusherPositions = {0.75, 0.5, 0.3};
+    public static double shooterPower = 0.95;
+    public static int shooterThreshold1 = 2578;
+    public static int shooterThreshold2 = 2585;
+    public static int shooterThreshold3 = 2572;
+    public static Integer[] shooterThresholds = {shooterThreshold1, shooterThreshold2, shooterThreshold3};
+    public static int setShooterThreshold = shooterThresholds[0];
 
     // Motor variables
     DcMotorEx fl, fr, bl, br, shooter, topIntake, bottomIntake, wobbleLifter;
@@ -52,10 +57,14 @@ public class TimeAutonomous extends LinearOpMode {
 
     // Shooter variables
     public static int ringPusherIteration = 1;
-    int shooterCooldown = cooldowns[0];
     int currentArrayIndex = 0;
-    ElapsedTime shooterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-    ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+    ElapsedTime ringPusherTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+    double currentShooterVelocity;
+
+    int currentTicks, previousTicks, deltaTicks;
+    double currentTime, previousTime, deltaTime, velocity;
+    ElapsedTime shooterPIDFTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+    ElapsedTime waitBetweenVelocityUpdates = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
 
     // Setup of ElapsedTime to track how long the robot is running; integral to a time-based autonomous
     ElapsedTime elapsedTime = new ElapsedTime();
@@ -126,8 +135,6 @@ public class TimeAutonomous extends LinearOpMode {
         shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         grabWobble();
-
-        shooter.setVelocityPIDFCoefficients(1.13, 0.11, 0, 11.25);
     }
 
     /**
@@ -223,9 +230,9 @@ public class TimeAutonomous extends LinearOpMode {
         // Set inches negative to move left/down
         if (opModeIsActive() && !isStopRequested()) {
             shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
-            moveStraight(50, 0.5);
+            moveStraight(55, 0.75);
             sleep(250);
-            strafe(8, 0.5);
+            strafe(2, 0.5);
             sleep(250);
             shootRings(4);
             shooter.setVelocity(0);
@@ -239,13 +246,13 @@ public class TimeAutonomous extends LinearOpMode {
                     strafe(12, 0.25);
                     sleep(250);
                     strafe(-4, 0.25);
-                    moveStraight(12, 0.5);
+                    moveStraight(6, 0.5);
                     wobble("release");
                     moveStraight(6, 0.5);
                     sleep(250);
                     strafe(36, -0.75);
                     sleep(250);
-                    moveStraight(32, -0.75);
+                    moveStraight(18, -0.75);
 
                     /*
                     moveStraight(44, 0.3);
@@ -262,12 +269,12 @@ public class TimeAutonomous extends LinearOpMode {
                     break;
 
                 case "B":
-                    strafe(18, 0.5);
+                    strafe(28, 0.5);
                     moveStraight(12, -1);
                     intakeOn();
                     moveStraight(24, -0.135);
                     sleep(250);
-                    strafe(28, -0.5);
+                    strafe(24, -0.5);
                     shooter.setVelocity(shooterPower * (robot.SHOOTER_TICKS_PER_ROTATION * (robot.SHOOTER_MAX_RPM / 60)));
                     sleep(250);
                     moveStraight(32, 0.5);
@@ -280,7 +287,7 @@ public class TimeAutonomous extends LinearOpMode {
                     strafe(36, 0.5);
                     wobble("release");
                     moveStraight(6, 0.5);
-                    strafe(24, -0.75);
+                    strafe(36, -0.75);
                     moveStraight(40, -0.75);
 
                     /*
@@ -308,6 +315,21 @@ public class TimeAutonomous extends LinearOpMode {
                     break;
 
                 case "C":
+                    moveStraight(12, 0.5);
+                    strafe(48, 0.75);
+                    sleep(250);
+                    strafe(12, 0.25);
+                    sleep(250);
+                    strafe(-4, 0.25);
+                    moveStraight(12, 0.5);
+                    wobble("release");
+                    moveStraight(6, 0.5);
+                    sleep(250);
+                    strafe(36, -0.75);
+                    sleep(250);
+                    moveStraight(24, -0.75);
+
+                    /*
                     strafe(20, 0.5);
                     moveStraight(28, -1);
                     sleep(250);
@@ -325,6 +347,8 @@ public class TimeAutonomous extends LinearOpMode {
                     shootRings(4);
                     intakeOff();
                     moveStraight(18, 0.5);
+
+                     */
 
                     /*
                     strafe(60, 0.75);
@@ -507,33 +531,37 @@ public class TimeAutonomous extends LinearOpMode {
      */
     public void shootRings(int numberOfRings) {
         while (ringPusherIteration <= (3 * numberOfRings)) {
-            switch (ringPusherIteration % 3) {
-                case 0:
-                    shooterCooldown = cooldowns[2];
-                    break;
-
-                case 1:
-                    shooterCooldown = cooldowns[0];
-                    break;
-
-                case 2:
-                    shooterCooldown = cooldowns[1];
-                    break;
+            currentShooterVelocity = shooter.getVelocity();
+            setShooterThreshold = shooterThresholds[
+                    Range.clip(((ringPusherIteration - 1) / 3), 0, 2)];
+            if (currentShooterVelocity >= (setShooterThreshold) &&
+                    ringPusherTimer.time(TimeUnit.MILLISECONDS) > 200) {
+                currentArrayIndex--;
+                if (currentArrayIndex < 0) {
+                    currentArrayIndex = ringPusherPositions.length - 1;
+                }
+                ringPusher.setPosition(ringPusherPositions[currentArrayIndex]);
+                ringPusherIteration++;
+                dashboardTelemetry.addData("ringPusherIteration", ringPusherIteration);
+                ringPusherTimer.reset();
             }
-
-            currentArrayIndex++;
-            if (currentArrayIndex >= ringPusherPositions.length) {
-                currentArrayIndex = 0;
-            }
-            ringPusher.setPosition(ringPusherPositions[currentArrayIndex]);
-            ringPusherTimer.reset();
-            ringPusherIteration++;
-
-            sleep(shooterCooldown);
         }
 
         ringPusher.setPosition(ringPusherPositions[0]);
         ringPusherIteration = 1;
+    }
+
+    public double calculateShooterVelocity() {
+        currentTicks = shooter.getCurrentPosition();
+        deltaTicks = currentTicks - previousTicks;
+        previousTicks = currentTicks;
+
+        currentTime = shooterPIDFTimer.time(TimeUnit.MILLISECONDS);
+        deltaTime = (currentTime - previousTime) / 1000.0;
+        previousTime = currentTime;
+
+        velocity = deltaTicks / deltaTime;
+        return velocity;
     }
 
     /**
@@ -557,7 +585,7 @@ public class TimeAutonomous extends LinearOpMode {
      * @param time The amount of time to lift
      */
     public void liftWobble(double time) {
-        wobbleLifter.setPower(-0.5);
+        wobbleLifter.setPower(-0.4);
         elapsedTime.reset();
         while (opModeIsActive() && elapsedTime.time() < time) {}
         wobbleLifter.setPower(0);
@@ -568,7 +596,7 @@ public class TimeAutonomous extends LinearOpMode {
      * @param time The amount of time to lower
      */
     public void lowerWobble(double time) {
-        wobbleLifter.setPower(0.4);
+        wobbleLifter.setPower(0.5);
         elapsedTime.reset();
         while (opModeIsActive() && elapsedTime.time(TimeUnit.SECONDS) < time) {
             telemetry.addData("wobble time", elapsedTime.time(TimeUnit.SECONDS));
@@ -582,7 +610,8 @@ public class TimeAutonomous extends LinearOpMode {
      * @param action Whether to grab or release
      */
     public void wobble(String action) {
-        lowerWobble(1);
+        lowerWobble(0.7);
+        sleep(500);
         switch (action.toLowerCase()) {
             case "grab": default:
                 grabWobble();
@@ -593,7 +622,7 @@ public class TimeAutonomous extends LinearOpMode {
                 releaseWobble();
                 break;
         }
-        liftWobble(0.5);
+        liftWobble(0.4);
     }
 
     /**
